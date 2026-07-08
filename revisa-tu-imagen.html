@@ -190,6 +190,19 @@
       <p id="bien-sub">La preparamos al tamaño exacto de impresión.</p>
     </div>
     <div id="preview-final"><img alt="Imagen final"><div></div></div>
+    <div id="bloque-ajuste" class="oculta" style="margin-top:14px">
+      <p style="font-size:14px;color:var(--tinta-suave);margin-bottom:10px">Tu imagen no tiene la misma proporción que la hoja. Elegí cómo acomodarla:</p>
+      <div class="opciones">
+        <label class="opcion" id="op-cover">
+          <input type="radio" name="ajuste" value="cover">
+          <div><b>Recortar los bordes</b><small>Llena toda la hoja, se pierde un poco de imagen en los costados</small></div>
+        </label>
+        <label class="opcion" id="op-contain">
+          <input type="radio" name="ajuste" value="contain">
+          <div><b>Imagen completa</b><small>No se recorta nada, quedan franjas blancas a los lados</small></div>
+        </label>
+      </div>
+    </div>
     <button class="boton verde" id="btn-whatsapp">Enviar a la imprenta por WhatsApp</button>
     <p style="text-align:center;font-size:13px;color:var(--tinta-suave);margin-top:8px">Se envía como PDF: WhatsApp no le baja la calidad, llega lista para imprimir.</p>
     <a class="enlace" id="btn-descargar" href="#" download>O descargala en tu teléfono</a>
@@ -214,7 +227,7 @@
   var SANGRADO = 3, DPI = 300;
 
   var img = null, nombreOriginal = '', blobFinal = null, nombreFinal = '';
-  var problemas = [], dpiEfectivo = 0;
+  var problemas = [], dpiEfectivo = 0, textosDetectados = [];
 
   var $ = function(id){ return document.getElementById(id); };
 
@@ -301,11 +314,13 @@
       var res = await worker.recognize(img);
       await worker.terminate();
 
+      textosDetectados = [];
       (res.data.lines || []).forEach(function(l){
         var txt = (l.text || '').trim();
         if(!txt || txt.length < 2 || (l.confidence || 0) < 35) return;
         var hpx = l.bbox.y1 - l.bbox.y0;
         if(hpx <= 2) return;
+        textosDetectados.push(l.bbox);
         var mm = hpx / img.naturalHeight * th;
         if(mm < 1.5) problemas.push({ tipo:'texto', nivel:'rojo', texto:txt, mm:mm });
         else if(mm < 2.2) problemas.push({ tipo:'texto', nivel:'ambar', texto:txt, mm:mm });
@@ -402,6 +417,28 @@
   });
 
   // ---------- generación del archivo final ----------
+  function hayTextoEnBordes(){
+    if(textosDetectados.length === 0) return false;
+    var mx = img.naturalWidth * 0.06, my = img.naturalHeight * 0.06;
+    return textosDetectados.some(function(b){
+      return b.x0 < mx || b.y0 < my ||
+             b.x1 > img.naturalWidth - mx || b.y1 > img.naturalHeight - my;
+    });
+  }
+
+  function modoAjuste(){
+    var r = document.querySelector('input[name=ajuste]:checked');
+    return r ? r.value : 'cover';
+  }
+
+  document.querySelectorAll('input[name=ajuste]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.querySelectorAll('#bloque-ajuste .opcion').forEach(function(o){ o.classList.remove('activa'); });
+      r.closest('.opcion').classList.add('activa');
+      generarFinal();
+    });
+  });
+
   async function generarFinal(){
     var t = tam();
     var tw = t.w, th = t.h;
@@ -409,7 +446,27 @@
     var wMM = tw + SANGRADO*2, hMM = th + SANGRADO*2;
     var wPX = Math.round(wMM/25.4*DPI), hPX = Math.round(hMM/25.4*DPI);
 
-    var esc = Math.max(wPX/img.naturalWidth, hPX/img.naturalHeight);
+    // ¿la proporción de la imagen coincide con la hoja?
+    var arImg = img.naturalWidth / img.naturalHeight;
+    var arHoja = wPX / hPX;
+    var desvio = Math.abs(arImg - arHoja) / arHoja;
+    var bloque = $('bloque-ajuste');
+    if(desvio > 0.02){
+      // proporción distinta: mostrar el selector, con default inteligente
+      if(bloque.classList.contains('oculta')){
+        bloque.classList.remove('oculta');
+        var def = hayTextoEnBordes() ? 'contain' : 'cover';
+        document.querySelector('input[name=ajuste][value=' + def + ']').checked = true;
+        $(def === 'cover' ? 'op-cover' : 'op-contain').classList.add('activa');
+      }
+    } else {
+      bloque.classList.add('oculta');
+    }
+    var modo = desvio > 0.02 ? modoAjuste() : 'cover';
+
+    var esc = modo === 'cover'
+      ? Math.max(wPX/img.naturalWidth, hPX/img.naturalHeight)
+      : Math.min(wPX/img.naturalWidth, hPX/img.naturalHeight);
     var dw = img.naturalWidth*esc, dh = img.naturalHeight*esc;
 
     // reducción por pasos
