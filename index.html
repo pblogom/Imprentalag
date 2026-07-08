@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramientas de imprenta</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#F7F6F2; --tinta:#17181C; --tinta-suave:#5B5C63;
+    --magenta:#D81B74; --linea:#DCDAD2; --blanco:#FFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--papel);color:var(--tinta);
+    font-family:'Archivo',system-ui,sans-serif;
+    min-height:100vh;padding:40px 20px;
+  }
+  .caja{max-width:640px;margin:0 auto}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--magenta);
+  }
+  h1{
+    font-size:clamp(30px,6vw,42px);font-weight:800;font-stretch:110%;
+    letter-spacing:-.01em;line-height:1.05;margin-top:6px;
+  }
+  p.sub{color:var(--tinta-suave);margin:12px 0 30px}
+  a.herramienta{
+    display:block;background:var(--blanco);
+    border:1px solid var(--linea);border-radius:12px;
+    padding:22px 24px;margin-bottom:14px;
+    text-decoration:none;color:var(--tinta);
+    transition:border-color .15s, transform .08s;
+  }
+  a.herramienta:hover{border-color:var(--magenta);transform:translateY(-1px)}
+  a.herramienta h2{font-size:19px;font-weight:700}
+  a.herramienta span{
+    display:block;color:var(--tinta-suave);font-size:14.5px;margin-top:5px;
+  }
+  a.herramienta .ir{
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+    color:var(--magenta);margin-top:10px;font-weight:600;
+  }
+</style>
+</head>
+<body>
+<div class="caja">
+  <div class="eyebrow">Para el trabajo de todos los días</div>
+  <h1>Herramientas de imprenta</h1>
+  <p class="sub">Elegí la herramienta que necesitás. Todo funciona desde el navegador, sin instalar nada.</p>
+
+  <a class="herramienta" href="preparador-volantes.html">
+    <h2>Preparador de volantes</h2>
+    <span>Subí la imagen del cliente, mirá qué textos van a quedar ilegibles al imprimir, y descargala lista en A5 a 300&nbsp;dpi, mucho más liviana.</span>
+    <div class="ir">Abrir →</div>
+  </a>
+</div>
+</body>
+</html>
