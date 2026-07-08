@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preparador de volantes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#F7F6F2;
+    --tinta:#17181C;
+    --tinta-suave:#5B5C63;
+    --magenta:#D81B74;
+    --cian:#0E7FA8;
+    --rojo:#C42B2B;
+    --ambar:#B37400;
+    --verde:#1E7A46;
+    --linea:#DCDAD2;
+    --blanco:#FFFFFF;
+    --radio:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--papel);
+    color:var(--tinta);
+    font-family:'Archivo',system-ui,sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    padding-bottom:80px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  header{
+    max-width:980px;margin:0 auto;padding:36px 20px 8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--magenta);
+  }
+  h1{
+    font-size:clamp(30px,5vw,44px);
+    font-weight:800;
+    font-stretch:110%;
+    letter-spacing:-.01em;
+    line-height:1.05;
+    margin-top:6px;
+  }
+  header p{color:var(--tinta-suave);margin-top:10px;max-width:560px}
+
+  main{max-width:980px;margin:0 auto;padding:20px}
+  section{
+    background:var(--blanco);
+    border:1px solid var(--linea);
+    border-radius:var(--radio);
+    padding:26px 24px;
+    margin-top:22px;
+  }
+  section.oculta{display:none}
+  .paso{
+    display:flex;align-items:baseline;gap:12px;margin-bottom:16px;
+  }
+  .paso .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;font-weight:600;color:var(--magenta);
+    border:1.5px solid var(--magenta);
+    border-radius:999px;
+    padding:2px 10px;
+    white-space:nowrap;
+  }
+  .paso h2{font-size:20px;font-weight:700;font-stretch:105%}
+  .ayuda{color:var(--tinta-suave);font-size:14.5px;margin-bottom:14px}
+
+  /* ---- zona de subida ---- */
+  #zona-subida{
+    border:2px dashed var(--linea);
+    border-radius:var(--radio);
+    padding:48px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  #zona-subida:hover, #zona-subida.arrastrando{
+    border-color:var(--magenta);
+    background:#FDF3F8;
+  }
+  #zona-subida strong{font-size:18px}
+  #zona-subida span{display:block;color:var(--tinta-suave);font-size:14px;margin-top:6px}
+  #archivo-info{
+    display:none;margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    color:var(--tinta-suave);
+  }
+
+  /* ---- controles ---- */
+  .fila{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  label.campo{display:block;font-size:13px;font-weight:600;color:var(--tinta-suave)}
+  label.campo select, label.campo input[type=number]{
+    display:block;margin-top:6px;
+    font-family:'IBM Plex Mono',monospace;font-size:15px;
+    padding:9px 12px;border:1.5px solid var(--linea);border-radius:8px;
+    background:var(--blanco);color:var(--tinta);
+    min-width:170px;
+  }
+  label.campo input[type=number]{min-width:110px;width:110px}
+  select:focus, input:focus, button:focus-visible{
+    outline:2px solid var(--cian);outline-offset:2px;
+  }
+  #tam-personalizado{display:none;gap:10px}
+
+  .boton{
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;
+    padding:11px 20px;border-radius:8px;border:1.5px solid var(--tinta);
+    background:var(--tinta);color:var(--blanco);cursor:pointer;
+    transition:transform .05s ease;
+  }
+  .boton:active{transform:translateY(1px)}
+  .boton.secundario{background:var(--blanco);color:var(--tinta)}
+  .boton.magenta{background:var(--magenta);border-color:var(--magenta)}
+  .boton:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- veredicto de resolución ---- */
+  .sello{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;
+    border-radius:6px;padding:6px 12px;margin-top:14px;
+  }
+  .sello::before{content:'';width:9px;height:9px;border-radius:50%;background:currentColor}
+  .sello.verde{color:var(--verde);background:#E8F4EC}
+  .sello.ambar{color:var(--ambar);background:#FAF1DE}
+  .sello.rojo{color:var(--rojo);background:#FAE7E7}
+
+  /* ---- preview con marcas de corte ---- */
+  .mesa{
+    display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);
+    gap:24px;margin-top:6px;
+  }
+  @media (max-width:820px){.mesa{grid-template-columns:1fr}}
+
+  #marco{
+    position:relative;
+    padding:18px;
+  }
+  /* marcas de corte en las esquinas */
+  .marca{position:absolute;width:16px;height:16px;pointer-events:none}
+  .marca::before,.marca::after{content:'';position:absolute;background:var(--magenta)}
+  .marca::before{width:16px;height:1.5px}
+  .marca::after{width:1.5px;height:16px}
+  .marca.tl{top:0;left:0}.marca.tl::before{top:0;left:0}.marca.tl::after{top:0;left:0}
+  .marca.tr{top:0;right:0}.marca.tr::before{top:0;right:0}.marca.tr::after{top:0;right:0}
+  .marca.bl{bottom:0;left:0}.marca.bl::before{bottom:0;left:0}.marca.bl::after{bottom:0;left:0}
+  .marca.br{bottom:0;right:0}.marca.br::before{bottom:0;right:0}.marca.br::after{bottom:0;right:0}
+
+  #lienzo-wrap{position:relative;width:100%;user-select:none;touch-action:none}
+  #lienzo{width:100%;display:block;border:1px solid var(--linea);cursor:crosshair}
+  #capa{position:absolute;inset:0;pointer-events:none}
+  .caja-texto{
+    position:absolute;border:1.5px solid;border-radius:2px;
+    pointer-events:auto;cursor:pointer;
+  }
+  .caja-texto.rojo{border-color:var(--rojo);background:rgba(196,43,43,.12)}
+  .caja-texto.ambar{border-color:var(--ambar);background:rgba(179,116,0,.10)}
+  .caja-texto.verde{border-color:var(--verde);background:rgba(30,122,70,.08)}
+  .caja-texto.activa{box-shadow:0 0 0 2px var(--cian)}
+  #caja-manual{
+    position:absolute;border:1.5px dashed var(--cian);
+    background:rgba(14,127,168,.08);display:none;pointer-events:none;
+  }
+  #chip-medida{
+    position:absolute;transform:translate(-50%,-130%);
+    background:var(--tinta);color:var(--blanco);
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+    padding:5px 10px;border-radius:6px;white-space:nowrap;
+    display:none;pointer-events:none;z-index:5;
+  }
+  .leyenda{
+    display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;
+    font-size:13px;color:var(--tinta-suave);
+  }
+  .leyenda span{display:inline-flex;align-items:center;gap:6px}
+  .leyenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .leyenda .r{background:rgba(196,43,43,.25);border:1.5px solid var(--rojo)}
+  .leyenda .a{background:rgba(179,116,0,.2);border:1.5px solid var(--ambar)}
+  .leyenda .v{background:rgba(30,122,70,.18);border:1.5px solid var(--verde)}
+
+  /* ---- panel de textos ---- */
+  #panel-textos h3{font-size:16px;font-weight:700;margin-bottom:4px}
+  #estado-ocr{font-size:14px;color:var(--tinta-suave);margin:8px 0}
+  #lista-textos{list-style:none;max-height:420px;overflow:auto;margin-top:10px}
+  #lista-textos li{
+    border:1px solid var(--linea);border-left-width:4px;
+    border-radius:8px;padding:10px 12px;margin-bottom:8px;
+    cursor:pointer;background:var(--blanco);
+  }
+  #lista-textos li.rojo{border-left-color:var(--rojo)}
+  #lista-textos li.ambar{border-left-color:var(--ambar)}
+  #lista-textos li.verde{border-left-color:var(--verde)}
+  #lista-textos li.activa{background:#EFF7FA;border-color:var(--cian)}
+  #lista-textos .txt{font-size:14.5px;font-weight:600;word-break:break-word}
+  #lista-textos .med{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    color:var(--tinta-suave);margin-top:3px;
+  }
+  #lista-textos .med b.rojo{color:var(--rojo)}
+  #lista-textos .med b.ambar{color:var(--ambar)}
+  #lista-textos .med b.verde{color:var(--verde)}
+  #barra-ocr{height:5px;background:var(--linea);border-radius:99px;overflow:hidden;display:none;margin:10px 0}
+  #barra-ocr div{height:100%;width:0;background:var(--magenta);transition:width .2s}
+
+  /* ---- exportación ---- */
+  .export-grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end}
+  .check{display:flex;align-items:center;gap:9px;font-size:15px;padding-bottom:10px}
+  .check input{width:18px;height:18px;accent-color:var(--magenta)}
+  #campo-calidad{min-width:200px}
+  #campo-calidad input[type=range]{width:100%;accent-color:var(--magenta);margin-top:10px}
+  #resultado-export{
+    display:none;margin-top:18px;padding:16px;
+    background:#F2F7F3;border:1px solid #CBE3D2;border-radius:8px;
+  }
+  #resultado-export .mono{font-size:13.5px;color:var(--tinta-suave)}
+  #resultado-export a{
+    display:inline-block;margin-top:10px;
+    font-weight:700;color:var(--blanco);background:var(--verde);
+    text-decoration:none;padding:10px 18px;border-radius:8px;
+  }
+  .nota{
+    margin-top:14px;font-size:13.5px;color:var(--tinta-suave);
+    border-top:1px dashed var(--linea);padding-top:12px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;scroll-behavior:auto !important}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Herramienta de preimpresión</div>
+  <h1>Preparador de volantes</h1>
+  <p>Subí la imagen que te mandó el cliente, elegí el tamaño de impresión y descubrí qué textos van a quedar ilegibles antes de empezar a trabajar.</p>
+</header>
+
+<main>
+
+  <!-- PASO 1 -->
+  <section id="sec-subida">
+    <div class="paso"><span class="num">Paso 1</span><h2>Subir la imagen del cliente</h2></div>
+    <div id="zona-subida" role="button" tabindex="0" aria-label="Subir imagen">
+      <strong>Arrastrá la imagen acá, o hacé clic para elegirla</strong>
+      <span>JPG, PNG o WebP · también funciona con imágenes muy pesadas</span>
+    </div>
+    <input type="file" id="input-archivo" accept="image/*" hidden>
+    <div id="archivo-info"></div>
+  </section>
+
+  <!-- PASO 2 -->
+  <section id="sec-tamano" class="oculta">
+    <div class="paso"><span class="num">Paso 2</span><h2>Tamaño final de impresión</h2></div>
+    <div class="fila">
+      <label class="campo">Tamaño
+        <select id="sel-tamano">
+          <option value="148x210" selected>A5 · 14,8 × 21 cm</option>
+          <option value="210x297">A4 · 21 × 29,7 cm</option>
+          <option value="105x148">A6 · 10,5 × 14,8 cm</option>
+          <option value="100x150">10 × 15 cm</option>
+          <option value="90x50">Tarjeta · 9 × 5 cm</option>
+          <option value="custom">Personalizado…</option>
+        </select>
+      </label>
+      <div id="tam-personalizado" class="fila">
+        <label class="campo">Ancho (mm)<input type="number" id="in-ancho" value="148" min="10" max="2000"></label>
+        <label class="campo">Alto (mm)<input type="number" id="in-alto" value="210" min="10" max="2000"></label>
+      </div>
+    </div>
+    <div id="sello-dpi" class="sello verde"></div>
+    <p class="ayuda" id="nota-orientacion" style="margin-top:10px"></p>
+  </section>
+
+  <!-- PASO 3 -->
+  <section id="sec-legibilidad" class="oculta">
+    <div class="paso"><span class="num">Paso 3</span><h2>Chequeo de legibilidad</h2></div>
+    <p class="ayuda">Tocá <strong>Detectar textos</strong> para que la herramienta encuentre y mida los textos sola. También podés <strong>dibujar un recuadro con el mouse</strong> sobre cualquier texto para medirlo a mano.</p>
+
+    <div class="mesa">
+      <div>
+        <div id="marco">
+          <span class="marca tl"></span><span class="marca tr"></span>
+          <span class="marca bl"></span><span class="marca br"></span>
+          <div id="lienzo-wrap">
+            <canvas id="lienzo"></canvas>
+            <div id="capa"></div>
+            <div id="caja-manual"></div>
+            <div id="chip-medida" class="mono"></div>
+          </div>
+        </div>
+        <div class="leyenda">
+          <span><i class="r"></i> Ilegible al imprimir</span>
+          <span><i class="a"></i> Justo, mejor rehacer</span>
+          <span><i class="v"></i> Se lee bien</span>
+        </div>
+      </div>
+
+      <div id="panel-textos">
+        <button class="boton magenta" id="btn-ocr">Detectar textos</button>
+        <div id="barra-ocr"><div></div></div>
+        <p id="estado-ocr"></p>
+        <ul id="lista-textos"></ul>
+        <button class="boton secundario oculta" id="btn-copiar" style="display:none">Copiar todos los textos</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASO 4 -->
+  <section id="sec-export" class="oculta">
+    <div class="paso"><span class="num">Paso 4</span><h2>Exportar para imprenta</h2></div>
+    <p class="ayuda">Genera un JPG al tamaño exacto elegido, a 300 dpi, mucho más liviano para mandar por mail o WhatsApp sin perder calidad de impresión.</p>
+    <div class="export-grid">
+      <label class="check"><input type="checkbox" id="chk-sangrado" checked> Agregar sangrado de 3&nbsp;mm</label>
+      <label class="campo" id="campo-calidad">Calidad JPG: <span class="mono" id="val-calidad">88</span>
+        <input type="range" id="in-calidad" min="60" max="95" value="88">
+      </label>
+      <button class="boton" id="btn-exportar">Generar JPG de imprenta</button>
+    </div>
+    <div id="resultado-export">
+      <strong id="export-titulo"></strong>
+      <div class="mono" id="export-detalle"></div>
+      <a id="link-descarga" download>Descargar archivo</a>
+    </div>
+    <p class="nota">El sangrado se logra agrandando apenas la imagen: se pierden ~3&nbsp;mm en cada borde. Si el diseño tiene textos muy pegados al borde, destildá la opción.</p>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---------- estado ----------
+  var img = null;            // HTMLImageElement original
+  var nombreOriginal = '';
+  var pesoOriginal = 0;
+  var textos = [];           // {texto, x,y,w,h (px imagen), mm, pt, nivel}
+  var ocrCargado = false;
+
+  // ---------- referencias ----------
+  var $ = function(id){ return document.getElementById(id); };
+  var zona = $('zona-subida'), inputArchivo = $('input-archivo');
+  var lienzo = $('lienzo'), ctx = lienzo.getContext('2d');
+  var capa = $('capa'), wrap = $('lienzo-wrap');
+
+  // ---------- utilidades ----------
+  function tamanoMM(){
+    var v = $('sel-tamano').value, w, h;
+    if(v === 'custom'){
+      w = parseFloat($('in-ancho').value) || 148;
+      h = parseFloat($('in-alto').value) || 210;
+    } else {
+      var p = v.split('x'); w = +p[0]; h = +p[1];
+    }
+    // orientación automática: acompaña a la imagen
+    if(img){
+      var imgApaisada = img.naturalWidth >= img.naturalHeight;
+      var tamApaisado = w >= h;
+      if(imgApaisada !== tamApaisado){ var t = w; w = h; h = t; }
+    }
+    return {w:w, h:h};
+  }
+
+  function fmtMB(bytes){
+    if(bytes > 1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+    return Math.round(bytes/1024) + ' KB';
+  }
+
+  function nivelPorMM(mm){
+    if(mm < 1.5) return 'rojo';
+    if(mm < 2.2) return 'ambar';
+    return 'verde';
+  }
+  function etiquetaNivel(n){
+    return n === 'rojo' ? 'ILEGIBLE — rehacer en vector'
+         : n === 'ambar' ? 'JUSTO — conviene rehacer'
+         : 'SE LEE BIEN';
+  }
+
+  // px de imagen → mm impresos (usamos la dimensión de alto)
+  function pxAmm(px){
+    var t = tamanoMM();
+    return px / img.naturalHeight * t.h;
+  }
+
+  // ---------- paso 1: subida ----------
+  function abrirSelector(){ inputArchivo.click(); }
+  zona.addEventListener('click', abrirSelector);
+  zona.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); abrirSelector(); }});
+  ;['dragover','dragenter'].forEach(function(ev){
+    zona.addEventListener(ev, function(e){ e.preventDefault(); zona.classList.add('arrastrando'); });
+  });
+  ;['dragleave','drop'].forEach(function(ev){
+    zona.addEventListener(ev, function(e){ e.preventDefault(); zona.classList.remove('arrastrando'); });
+  });
+  zona.addEventListener('drop', function(e){
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) cargarArchivo(e.dataTransfer.files[0]);
+  });
+  inputArchivo.addEventListener('change', function(){
+    if(inputArchivo.files[0]) cargarArchivo(inputArchivo.files[0]);
+  });
+
+  function cargarArchivo(file){
+    if(!file.type.match(/^image\//)){
+      alert('Ese archivo no es una imagen. Probá con un JPG o PNG.');
+      return;
+    }
+    nombreOriginal = file.name;
+    pesoOriginal = file.size;
+    var url = URL.createObjectURL(file);
+    var im = new Image();
+    im.onload = function(){
+      img = im;
+      textos = [];
+      $('lista-textos').innerHTML = '';
+      $('estado-ocr').textContent = '';
+      $('btn-copiar').style.display = 'none';
+      $('resultado-export').style.display = 'none';
+      $('archivo-info').style.display = 'block';
+      $('archivo-info').textContent = nombreOriginal + ' · ' + im.naturalWidth + '×' + im.naturalHeight + ' px · ' + fmtMB(pesoOriginal);
+      $('sec-tamano').classList.remove('oculta');
+      $('sec-legibilidad').classList.remove('oculta');
+      $('sec-export').classList.remove('oculta');
+      dibujarPreview();
+      actualizarDPI();
+      $('sec-tamano').scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    im.onerror = function(){ alert('No se pudo abrir la imagen. Probá con otro archivo.'); };
+    im.src = url;
+  }
+
+  // ---------- paso 2: tamaño y DPI ----------
+  $('sel-tamano').addEventListener('change', function(){
+    $('tam-personalizado').style.display = this.value === 'custom' ? 'flex' : 'none';
+    actualizarTodo();
+  });
+  $('in-ancho').addEventListener('input', actualizarTodo);
+  $('in-alto').addEventListener('input', actualizarTodo);
+
+  function actualizarTodo(){
+    if(!img) return;
+    actualizarDPI();
+    recalcularTextos();
+    pintarCajas();
+    pintarLista();
+  }
+
+  function actualizarDPI(){
+    var t = tamanoMM();
+    var dpi = Math.round(img.naturalWidth / (t.w / 25.4));
+    var s = $('sello-dpi'), nivel, msj;
+    if(dpi >= 250){ nivel='verde'; msj='Resolución excelente para imprimir'; }
+    else if(dpi >= 150){ nivel='ambar'; msj='Resolución aceptable, puede verse algo blanda'; }
+    else { nivel='rojo'; msj='Resolución baja: se va a ver pixelada a este tamaño'; }
+    s.className = 'sello ' + nivel;
+    s.textContent = dpi + ' dpi efectivos a ' + (t.w/10).toLocaleString('es') + ' × ' + (t.h/10).toLocaleString('es') + ' cm — ' + msj;
+    var apaisada = t.w > t.h;
+    $('nota-orientacion').textContent = 'La orientación se acomoda sola a la imagen (' + (apaisada ? 'apaisada' : 'vertical') + ').';
+  }
+
+  // ---------- preview ----------
+  var MAX_PREVIEW = 1400;
+  function dibujarPreview(){
+    var esc = Math.min(1, MAX_PREVIEW / Math.max(img.naturalWidth, img.naturalHeight));
+    lienzo.width  = Math.round(img.naturalWidth * esc);
+    lienzo.height = Math.round(img.naturalHeight * esc);
+    ctx.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+    pintarCajas();
+  }
+
+  // factor px-imagen → px-pantalla
+  function escalaPantalla(){
+    return lienzo.getBoundingClientRect().width / img.naturalWidth;
+  }
+
+  function pintarCajas(){
+    capa.innerHTML = '';
+    if(!img) return;
+    var e = escalaPantalla();
+    textos.forEach(function(t, i){
+      var d = document.createElement('div');
+      d.className = 'caja-texto ' + t.nivel;
+      d.style.left = (t.x*e) + 'px';
+      d.style.top = (t.y*e) + 'px';
+      d.style.width = (t.w*e) + 'px';
+      d.style.height = (t.h*e) + 'px';
+      d.title = t.texto + ' — ' + t.mm.toFixed(1) + ' mm';
+      d.addEventListener('click', function(ev){ ev.stopPropagation(); seleccionar(i); });
+      capa.appendChild(d);
+    });
+  }
+
+  window.addEventListener('resize', function(){ if(img) pintarCajas(); });
+
+  function seleccionar(i){
+    var cajas = capa.children, items = $('lista-textos').children;
+    for(var k=0;k<cajas.length;k++) cajas[k].classList.toggle('activa', k===i);
+    for(var k2=0;k2<items.length;k2++){
+      items[k2].classList.toggle('activa', k2===i);
+      if(k2===i) items[k2].scrollIntoView({block:'nearest'});
+    }
+  }
+
+  // ---------- medición manual (arrastrar recuadro) ----------
+  var midiendo = false, mx0=0, my0=0;
+  var cajaManual = $('caja-manual'), chip = $('chip-medida');
+
+  function posRelativa(ev){
+    var r = lienzo.getBoundingClientRect();
+    var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+    var cy = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+    return {x: Math.max(0, Math.min(r.width, cx)), y: Math.max(0, Math.min(r.height, cy))};
+  }
+
+  function iniciarMedida(ev){
+    if(!img) return;
+    ev.preventDefault();
+    var p = posRelativa(ev);
+    midiendo = true; mx0 = p.x; my0 = p.y;
+    cajaManual.style.display = 'block';
+    moverMedida(ev);
+  }
+  function moverMedida(ev){
+    if(!midiendo) return;
+    var p = posRelativa(ev);
+    var x = Math.min(mx0, p.x), y = Math.min(my0, p.y);
+    var w = Math.abs(p.x - mx0), h = Math.abs(p.y - my0);
+    cajaManual.style.left = x+'px'; cajaManual.style.top = y+'px';
+    cajaManual.style.width = w+'px'; cajaManual.style.height = h+'px';
+    var e = escalaPantalla();
+    var mm = pxAmm(h / e);
+    var nivel = nivelPorMM(mm);
+    chip.style.display = 'block';
+    chip.style.left = (x + w/2) + 'px';
+    chip.style.top = y + 'px';
+    chip.textContent = mm.toFixed(1) + ' mm ≈ ' + Math.round(mm/0.3528) + ' pt — ' +
+      (nivel==='rojo' ? 'ilegible' : nivel==='ambar' ? 'justo' : 'se lee bien');
+  }
+  function finMedida(){
+    midiendo = false;
+    setTimeout(function(){
+      cajaManual.style.display = 'none';
+      chip.style.display = 'none';
+    }, 1800);
+  }
+  wrap.addEventListener('mousedown', iniciarMedida);
+  window.addEventListener('mousemove', moverMedida);
+  window.addEventListener('mouseup', function(){ if(midiendo) finMedida(); });
+  wrap.addEventListener('touchstart', iniciarMedida, {passive:false});
+  wrap.addEventListener('touchmove', moverMedida, {passive:false});
+  wrap.addEventListener('touchend', function(){ if(midiendo) finMedida(); });
+
+  // ---------- OCR ----------
+  $('btn-ocr').addEventListener('click', detectarTextos);
+
+  function cargarScript(src){
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = function(){ rej(new Error('no cargó ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function detectarTextos(){
+    var btn = $('btn-ocr'), estado = $('estado-ocr');
+    var barra = $('barra-ocr'), barraFill = barra.firstElementChild;
+    btn.disabled = true;
+    barra.style.display = 'block';
+    estado.textContent = 'Cargando detector de texto…';
+    try{
+      if(!ocrCargado){
+        await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
+        ocrCargado = true;
+      }
+      estado.textContent = 'Leyendo los textos de la imagen… puede tardar un minuto.';
+      var worker = await Tesseract.createWorker('spa', 1, {
+        logger: function(m){
+          if(m.status === 'recognizing text') barraFill.style.width = Math.round(m.progress*100) + '%';
+        }
+      });
+      var res = await worker.recognize(img);
+      await worker.terminate();
+
+      textos = [];
+      (res.data.lines || []).forEach(function(l){
+        var txt = (l.text || '').trim();
+        if(!txt || txt.length < 2) return;
+        if((l.confidence || 0) < 35) return;
+        var b = l.bbox;
+        var h = b.y1 - b.y0, w = b.x1 - b.x0;
+        if(h <= 2 || w <= 4) return;
+        textos.push({ texto: txt, x: b.x0, y: b.y0, w: w, h: h });
+      });
+      recalcularTextos();
+      pintarCajas();
+      pintarLista();
+      barra.style.display = 'none';
+      if(textos.length === 0){
+        estado.textContent = 'No se detectaron textos claros. Podés medir a mano dibujando un recuadro sobre la imagen.';
+      } else {
+        var rojos = textos.filter(function(t){return t.nivel==='rojo';}).length;
+        var ambar = textos.filter(function(t){return t.nivel==='ambar';}).length;
+        estado.textContent = 'Se encontraron ' + textos.length + ' textos: ' +
+          rojos + ' ilegibles, ' + ambar + ' justos. Tocá cada uno para ubicarlo.';
+        $('btn-copiar').style.display = 'inline-block';
+      }
+    } catch(err){
+      barra.style.display = 'none';
+      estado.textContent = 'El detector automático no pudo cargarse (necesita internet). No pasa nada: dibujá un recuadro con el mouse sobre cada texto para medirlo.';
+    }
+    btn.disabled = false;
+  }
+
+  function recalcularTextos(){
+    textos.forEach(function(t){
+      t.mm = pxAmm(t.h);
+      t.pt = Math.round(t.mm / 0.3528);
+      t.nivel = nivelPorMM(t.mm);
+    });
+  }
+
+  function pintarLista(){
+    var ul = $('lista-textos');
+    ul.innerHTML = '';
+    // primero los problemáticos
+    var orden = textos.map(function(t,i){ return i; }).sort(function(a,b){
+      var peso = {rojo:0, ambar:1, verde:2};
+      return peso[textos[a].nivel] - peso[textos[b].nivel];
+    });
+    orden.forEach(function(i){
+      var t = textos[i];
+      var li = document.createElement('li');
+      li.className = t.nivel;
+      li.innerHTML =
+        '<div class="txt"></div>' +
+        '<div class="med">' + t.mm.toFixed(1) + ' mm ≈ ' + t.pt + ' pt · <b class="' + t.nivel + '">' + etiquetaNivel(t.nivel) + '</b></div>';
+      li.querySelector('.txt').textContent = t.texto;
+      li.addEventListener('click', function(){ seleccionar(i); });
+      ul.appendChild(li);
+    });
+  }
+
+  $('btn-copiar').addEventListener('click', function(){
+    var todo = textos.map(function(t){ return t.texto; }).join('\n');
+    navigator.clipboard.writeText(todo).then(function(){
+      $('btn-copiar').textContent = '¡Copiado! Pegalo en Illustrator';
+      setTimeout(function(){ $('btn-copiar').textContent = 'Copiar todos los textos'; }, 2500);
+    });
+  });
+
+  // ---------- exportación ----------
+  $('in-calidad').addEventListener('input', function(){
+    $('val-calidad').textContent = this.value;
+  });
+  $('btn-exportar').addEventListener('click', exportar);
+
+  function exportar(){
+    if(!img) return;
+    var t = tamanoMM();
+    var sangrado = $('chk-sangrado').checked ? 3 : 0;
+    var DPI = 300;
+    var wMM = t.w + sangrado*2, hMM = t.h + sangrado*2;
+    var wPX = Math.round(wMM / 25.4 * DPI);
+    var hPX = Math.round(hMM / 25.4 * DPI);
+
+    // escala tipo "cover": la imagen cubre todo el lienzo final
+    var esc = Math.max(wPX / img.naturalWidth, hPX / img.naturalHeight);
+    var dw = img.naturalWidth * esc, dh = img.naturalHeight * esc;
+    var dx = (wPX - dw) / 2, dy = (hPX - dh) / 2;
+
+    // reducción por pasos para mantener calidad al achicar mucho
+    var fuente = img;
+    var fw = img.naturalWidth, fh = img.naturalHeight;
+    while(fw / 2 > dw && fh / 2 > dh){
+      var tmp = document.createElement('canvas');
+      tmp.width = Math.round(fw/2); tmp.height = Math.round(fh/2);
+      var tctx = tmp.getContext('2d');
+      tctx.imageSmoothingQuality = 'high';
+      tctx.drawImage(fuente, 0, 0, tmp.width, tmp.height);
+      fuente = tmp; fw = tmp.width; fh = tmp.height;
+    }
+
+    var out = document.createElement('canvas');
+    out.width = wPX; out.height = hPX;
+    var octx = out.getContext('2d');
+    octx.imageSmoothingQuality = 'high';
+    octx.fillStyle = '#FFFFFF';
+    octx.fillRect(0, 0, wPX, hPX);
+    octx.drawImage(fuente, dx, dy, dw, dh);
+
+    var calidad = (+$('in-calidad').value) / 100;
+    out.toBlob(function(blob){
+      if(!blob){ alert('No se pudo generar el archivo. Probá de nuevo.'); return; }
+      var url = URL.createObjectURL(blob);
+      var base = nombreOriginal.replace(/\.[^.]+$/, '') || 'volante';
+      var nombre = base + '_' + t.w + 'x' + t.h + 'mm_300dpi' + (sangrado ? '_sangrado3mm' : '') + '.jpg';
+      var link = $('link-descarga');
+      link.href = url;
+      link.download = nombre;
+      $('export-titulo').textContent = 'Listo para la imprenta';
+      $('export-detalle').textContent =
+        nombre + '\n' +
+        wPX + ' × ' + hPX + ' px · 300 dpi · ' + wMM + ' × ' + hMM + ' mm' + (sangrado ? ' (incluye sangrado)' : '') + '\n' +
+        'Peso: ' + fmtMB(blob.size) + '  ·  original: ' + fmtMB(pesoOriginal) +
+        (pesoOriginal > blob.size ? '  →  ' + Math.round((1 - blob.size/pesoOriginal)*100) + '% más liviano' : '');
+      var caja = $('resultado-export');
+      caja.style.display = 'block';
+      caja.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 'image/jpeg', calidad);
+  }
+
+})();
+</script>
+</body>
+</html>
