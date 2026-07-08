@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Armador de pliegos</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#F7F6F2; --tinta:#17181C; --tinta-suave:#5B5C63;
+    --magenta:#D81B74; --linea:#DCDAD2; --blanco:#FFF;
+    --rojo:#C42B2B; --ambar:#B37400; --verde:#1E7A46;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--papel);color:var(--tinta);
+    font-family:'Archivo',system-ui,sans-serif;
+    font-size:16px;line-height:1.5;padding:26px 16px 60px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .caja{max-width:560px;margin:0 auto}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--magenta);
+  }
+  h1{
+    font-size:clamp(26px,7vw,34px);font-weight:800;font-stretch:110%;
+    letter-spacing:-.01em;line-height:1.08;margin-top:6px;
+  }
+  p.sub{color:var(--tinta-suave);font-size:15px;margin-top:10px}
+  .tarjeta{
+    background:var(--blanco);border:1px solid var(--linea);
+    border-radius:14px;padding:22px 18px;margin-top:18px;
+  }
+  .oculta{display:none !important}
+  h2{font-size:18px;font-weight:700;margin-bottom:12px}
+
+  .opciones{display:grid;gap:12px}
+  .opcion{
+    display:flex;align-items:center;gap:14px;
+    border:1.5px solid var(--linea);border-radius:12px;
+    padding:16px;cursor:pointer;background:var(--blanco);
+  }
+  .opcion input{width:20px;height:20px;accent-color:var(--magenta);flex-shrink:0}
+  .opcion.activa{border-color:var(--magenta);background:#FDF3F8}
+  .opcion b{font-size:16px;display:block}
+  .opcion small{color:var(--tinta-suave);font-size:13.5px}
+
+  #zona{
+    border:2px dashed var(--linea);border-radius:12px;
+    padding:30px 16px;text-align:center;cursor:pointer;margin-top:4px;
+  }
+  #zona:hover{border-color:var(--magenta);background:#FDF3F8}
+  #zona strong{font-size:16px}
+  #zona span{display:block;color:var(--tinta-suave);font-size:13.5px;margin-top:5px}
+
+  #lista-disenos{list-style:none;margin-top:14px}
+  #lista-disenos li{
+    display:flex;align-items:center;gap:12px;
+    border:1px solid var(--linea);border-radius:10px;
+    padding:10px;margin-bottom:10px;
+  }
+  #lista-disenos img{
+    width:52px;height:72px;object-fit:cover;border-radius:6px;
+    border:1px solid var(--linea);flex-shrink:0;background:#EEE;
+  }
+  #lista-disenos .info{flex:1;min-width:0}
+  #lista-disenos .nombre{
+    font-size:13.5px;font-weight:600;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;
+  }
+  .stepper{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .stepper button{
+    width:32px;height:32px;border-radius:8px;border:1.5px solid var(--linea);
+    background:var(--blanco);font-size:18px;font-weight:700;cursor:pointer;color:var(--tinta);
+  }
+  .stepper .cant{
+    font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;
+    min-width:26px;text-align:center;
+  }
+  .quitar{
+    border:none;background:none;color:var(--rojo);
+    font-size:13px;cursor:pointer;text-decoration:underline;flex-shrink:0;
+  }
+  #contador{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    margin-top:6px;font-weight:600;
+  }
+  #contador.mal{color:var(--rojo)}
+  #contador.bien{color:var(--verde)}
+
+  .check{display:flex;align-items:center;gap:9px;font-size:15px;margin-top:12px;cursor:pointer}
+  .check input{width:18px;height:18px;accent-color:var(--magenta)}
+  .aviso{
+    font-size:13.5px;color:var(--ambar);background:#FAF1DE;
+    border-radius:8px;padding:10px 12px;margin-top:12px;
+  }
+
+  .boton{
+    display:block;width:100%;text-align:center;
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;
+    padding:16px;border-radius:12px;border:none;cursor:pointer;
+    background:var(--magenta);color:var(--blanco);margin-top:18px;
+  }
+  .boton:disabled{opacity:.45}
+  .boton.verde{background:var(--verde)}
+
+  #vista-previa{text-align:center;margin-top:16px}
+  #vista-previa canvas{
+    max-width:100%;border:1px solid var(--linea);border-radius:8px;background:#FFF;
+  }
+  #vista-previa p{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--tinta-suave);margin-top:8px}
+  #estado{font-size:14.5px;color:var(--tinta-suave);margin-top:12px;text-align:center}
+  #descarga{
+    display:none;text-align:center;text-decoration:none;
+    font-weight:700;color:var(--blanco);background:var(--verde);
+    padding:16px;border-radius:12px;margin-top:14px;
+  }
+  footer{
+    text-align:center;margin-top:30px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--tinta-suave);
+  }
+</style>
+</head>
+<body>
+<div class="caja">
+
+  <div class="eyebrow">Herramienta de imprenta</div>
+  <h1>Armador de pliegos</h1>
+  <p class="sub">Subí los volantes que te llegaron (JPG, PNG o PDF) y descargá el pliego listo para imprimir y cortar.</p>
+
+  <!-- 1: pliego -->
+  <div class="tarjeta">
+    <h2>1 · Elegí el pliego</h2>
+    <div class="opciones">
+      <label class="opcion activa">
+        <input type="radio" name="pliego" value="fc" checked>
+        <div><b>32,5 × 47,5 cm — Full color</b><small>Entran 9 volantes de 10 × 15</small></div>
+      </label>
+      <label class="opcion">
+        <input type="radio" name="pliego" value="bn">
+        <div><b>22 × 34 cm — Un solo color</b><small>Entran 4 volantes de 11 × 17, borde a borde</small></div>
+      </label>
+    </div>
+    <div id="aviso-bn" class="aviso oculta">En este pliego las piezas llegan justo al borde del papel. Como la impresora deja un margen sin imprimir, los bordes externos pueden quedar en blanco. Para cortar: un tajo al medio a lo alto y otro a lo ancho.</div>
+    <div id="op-corte" class="opciones" style="margin-top:12px">
+      <label class="opcion activa" style="padding:12px 16px">
+        <input type="radio" name="corte" value="pegadas" checked>
+        <div><b style="font-size:15px">Piezas pegadas</b><small>Un solo corte por línea, más rápido</small></div>
+      </label>
+      <label class="opcion" style="padding:12px 16px">
+        <input type="radio" name="corte" value="calle">
+        <div><b style="font-size:15px">Con calle de 4 mm</b><small>Espacio entre piezas, dos cortes por línea</small></div>
+      </label>
+    </div>
+  </div>
+
+  <!-- 2: diseños -->
+  <div class="tarjeta">
+    <h2>2 · Subí los diseños</h2>
+    <div id="zona" role="button" tabindex="0">
+      <strong>Tocá para agregar archivos</strong>
+      <span>Podés subir uno solo y repetirlo, o varios distintos para llenar el pliego</span>
+    </div>
+    <input type="file" id="input-archivo" accept="image/*,.pdf" multiple hidden>
+    <ul id="lista-disenos"></ul>
+    <div id="contador"></div>
+  </div>
+
+  <!-- 3: generar -->
+  <div class="tarjeta">
+    <h2>3 · Generá el pliego</h2>
+    <label class="check"><input type="checkbox" id="chk-marcas" checked> Marcas de corte en los márgenes</label>
+    <button class="boton" id="btn-generar" disabled>Armar el pliego</button>
+    <div id="estado"></div>
+    <div id="vista-previa"></div>
+    <a id="descarga" href="#" download>Descargar PDF del pliego</a>
+  </div>
+
+</div>
+<footer>Funciona en tu navegador · Los archivos no se suben a ningún lado</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  var PLIEGOS = {
+    fc: { W:325, H:475, pw:100, ph:150, cols:3, filas:3, unColor:false, nombre:'pliego_32x47_9de10x15' },
+    bn: { W:220, H:340, pw:110, ph:170, cols:2, filas:2, unColor:true,  nombre:'pliego_22x34_4de11x17' }
+  };
+  var DPI = 300;
+  var disenos = []; // {nombre, canvas (pieza ya renderizada), cantidad, thumb}
+
+  var $ = function(id){ return document.getElementById(id); };
+  function pliego(){ return PLIEGOS[document.querySelector('input[name=pliego]:checked').value]; }
+  function capacidad(){ var p = pliego(); return p.cols * p.filas; }
+  function mmapx(mm){ return Math.round(mm / 25.4 * DPI); }
+
+  // marcar opción activa visualmente
+  document.querySelectorAll('.opcion input').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.querySelectorAll('input[name=' + r.name + ']').forEach(function(o){
+        o.closest('.opcion').classList.toggle('activa', o.checked);
+      });
+    });
+  });
+
+  document.querySelectorAll('input[name=pliego]').forEach(function(r){
+    r.addEventListener('change', function(){
+      var esBN = pliego().unColor;
+      $('aviso-bn').classList.toggle('oculta', !esBN);
+      $('op-corte').classList.toggle('oculta', esBN);
+      // las piezas se renderizan al tamaño del pliego elegido → re-procesar
+      reprocesarTodo();
+    });
+  });
+
+  // ---------- carga de archivos ----------
+  var zona = $('zona'), input = $('input-archivo');
+  zona.addEventListener('click', function(){ input.click(); });
+  zona.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); }});
+  input.addEventListener('change', function(){
+    Array.prototype.forEach.call(input.files, agregarArchivo);
+    input.value = '';
+  });
+
+  function cargarScript(src){
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function rasterDesdePDF(file){
+    if(typeof pdfjsLib === 'undefined'){
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    var buf = await file.arrayBuffer();
+    var doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    var page = await doc.getPage(1);
+    var vp = page.getViewport({ scale: DPI / 72 });
+    var c = document.createElement('canvas');
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    return c;
+  }
+
+  function rasterDesdeImagen(file){
+    return new Promise(function(res, rej){
+      var im = new Image();
+      im.onload = function(){
+        var c = document.createElement('canvas');
+        c.width = im.naturalWidth; c.height = im.naturalHeight;
+        c.getContext('2d').drawImage(im, 0, 0);
+        res(c);
+      };
+      im.onerror = rej;
+      im.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function agregarArchivo(file){
+    $('estado').textContent = 'Procesando ' + file.name + '…';
+    try{
+      var fuente = file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
+        ? await rasterDesdePDF(file)
+        : await rasterDesdeImagen(file);
+      var d = { nombre: file.name, fuente: fuente, cantidad: 0 };
+      d.pieza = renderPieza(fuente);
+      d.thumb = d.pieza.toDataURL('image/jpeg', 0.6);
+      disenos.push(d);
+      autoDistribuir();
+      pintarLista();
+      $('estado').textContent = '';
+    } catch(e){
+      $('estado').textContent = 'No se pudo abrir ' + file.name + '. Probá con otro archivo.';
+    }
+  }
+
+  // renderiza el archivo al tamaño exacto de la pieza (recorte tipo cover + rotación automática)
+  function renderPieza(fuente){
+    var p = pliego();
+    var wPX = mmapx(p.pw), hPX = mmapx(p.ph);
+    var rotar = (fuente.width >= fuente.height) !== (wPX >= hPX);
+    var sw = rotar ? fuente.height : fuente.width;
+    var sh = rotar ? fuente.width : fuente.height;
+    var esc = Math.max(wPX/sw, hPX/sh);
+
+    var c = document.createElement('canvas');
+    c.width = wPX; c.height = hPX;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(0, 0, wPX, hPX);
+    ctx.save();
+    ctx.translate(wPX/2, hPX/2);
+    if(rotar) ctx.rotate(Math.PI/2);
+    ctx.drawImage(fuente, -fuente.width*esc/2, -fuente.height*esc/2, fuente.width*esc, fuente.height*esc);
+    ctx.restore();
+
+    if(p.unColor){
+      var d = ctx.getImageData(0, 0, wPX, hPX), px = d.data;
+      for(var i=0;i<px.length;i+=4){
+        var g = px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114;
+        px[i]=px[i+1]=px[i+2]=g;
+      }
+      ctx.putImageData(d, 0, 0);
+    }
+    return c;
+  }
+
+  function reprocesarTodo(){
+    disenos.forEach(function(d){
+      d.pieza = renderPieza(d.fuente);
+      d.thumb = d.pieza.toDataURL('image/jpeg', 0.6);
+    });
+    autoDistribuir();
+    pintarLista();
+  }
+
+  function autoDistribuir(){
+    var cap = capacidad(), n = disenos.length;
+    if(n === 0) return;
+    var base = Math.floor(cap / n), resto = cap % n;
+    disenos.forEach(function(d, i){ d.cantidad = base + (i < resto ? 1 : 0); });
+  }
+
+  function totalPiezas(){
+    return disenos.reduce(function(s, d){ return s + d.cantidad; }, 0);
+  }
+
+  function pintarLista(){
+    var ul = $('lista-disenos');
+    ul.innerHTML = '';
+    disenos.forEach(function(d, i){
+      var li = document.createElement('li');
+      var img = document.createElement('img');
+      img.src = d.thumb; img.alt = d.nombre;
+      var info = document.createElement('div');
+      info.className = 'info';
+      var nom = document.createElement('div');
+      nom.className = 'nombre'; nom.textContent = d.nombre;
+      var st = document.createElement('div');
+      st.className = 'stepper';
+      var menos = document.createElement('button'); menos.textContent = '−';
+      var cant = document.createElement('span'); cant.className = 'cant'; cant.textContent = d.cantidad;
+      var mas = document.createElement('button'); mas.textContent = '+';
+      menos.addEventListener('click', function(){ if(d.cantidad>0){ d.cantidad--; pintarLista(); }});
+      mas.addEventListener('click', function(){ if(totalPiezas()<capacidad()){ d.cantidad++; pintarLista(); }});
+      st.appendChild(menos); st.appendChild(cant); st.appendChild(mas);
+      info.appendChild(nom); info.appendChild(st);
+      var quitar = document.createElement('button');
+      quitar.className = 'quitar'; quitar.textContent = 'Quitar';
+      quitar.addEventListener('click', function(){ disenos.splice(i,1); autoDistribuir(); pintarLista(); });
+      li.appendChild(img); li.appendChild(info); li.appendChild(quitar);
+      ul.appendChild(li);
+    });
+    var tot = totalPiezas(), cap = capacidad();
+    var cont = $('contador');
+    if(disenos.length === 0){ cont.textContent = ''; }
+    else {
+      cont.textContent = tot + ' de ' + cap + ' lugares del pliego ocupados';
+      cont.className = tot === cap ? 'bien' : 'mal';
+      cont.id = 'contador';
+      cont.classList.add(tot === cap ? 'bien' : 'mal');
+    }
+    $('btn-generar').disabled = !(disenos.length > 0 && tot === cap);
+    $('descarga').style.display = 'none';
+  }
+
+  // ---------- generación del pliego ----------
+  $('btn-generar').addEventListener('click', generar);
+
+  async function generar(){
+    var p = pliego();
+    var calle = (!p.unColor && document.querySelector('input[name=corte]:checked').value === 'calle') ? 4 : 0;
+    var marcas = $('chk-marcas').checked;
+    $('estado').textContent = 'Armando el pliego…';
+    $('btn-generar').disabled = true;
+
+    // secuencia de piezas según cantidades
+    var secuencia = [];
+    disenos.forEach(function(d){ for(var k=0;k<d.cantidad;k++) secuencia.push(d); });
+
+    var bw = p.cols*p.pw + (p.cols-1)*calle;
+    var bh = p.filas*p.ph + (p.filas-1)*calle;
+    var ox = (p.W - bw)/2, oy = (p.H - bh)/2;
+
+    if(typeof window.jspdf === 'undefined'){
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    var pdf = new window.jspdf.jsPDF({ unit:'mm', format:[p.W, p.H], orientation:'p', compress:true });
+
+    // piezas (reutiliza el mismo JPEG para diseños repetidos gracias al alias)
+    var cache = {};
+    for(var i=0;i<secuencia.length;i++){
+      var d = secuencia[i];
+      if(!cache[d.nombre]) cache[d.nombre] = d.pieza.toDataURL('image/jpeg', 0.92);
+      var col = i % p.cols, fila = Math.floor(i / p.cols);
+      var x = ox + col*(p.pw + calle);
+      var y = oy + fila*(p.ph + calle);
+      pdf.addImage(cache[d.nombre], 'JPEG', x, y, p.pw, p.ph, 'd' + Object.keys(cache).indexOf(d.nombre));
+    }
+
+    // marcas de corte en los márgenes (si hay márgenes)
+    if(marcas && ox > 3 && oy > 3){
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.2);
+      var LARGO = Math.min(5, oy - 2), SEP = 2;
+      // posiciones de corte verticales e horizontales (bordes de cada pieza)
+      var xs = [], ys = [];
+      for(var c2=0;c2<=p.cols;c2++){
+        xs.push(ox + c2*(p.pw+calle) - (c2>0 ? calle : 0));
+        if(calle && c2>0 && c2<p.cols) xs.push(ox + c2*(p.pw+calle));
+      }
+      for(var f2=0;f2<=p.filas;f2++){
+        ys.push(oy + f2*(p.ph+calle) - (f2>0 ? calle : 0));
+        if(calle && f2>0 && f2<p.filas) ys.push(oy + f2*(p.ph+calle));
+      }
+      xs.forEach(function(x3){
+        pdf.line(x3, oy - SEP - LARGO, x3, oy - SEP);
+        pdf.line(x3, oy + bh + SEP, x3, oy + bh + SEP + LARGO);
+      });
+      ys.forEach(function(y3){
+        pdf.line(ox - SEP - LARGO, y3, ox - SEP, y3);
+        pdf.line(ox + bw + SEP, y3, ox + bw + SEP + LARGO, y3);
+      });
+    }
+
+    var blob = pdf.output('blob');
+    var nombre = p.nombre + (calle ? '_concalle' : '') + '.pdf';
+    var a = $('descarga');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    a.style.display = 'block';
+    a.textContent = 'Descargar ' + nombre + ' (' + (blob.size > 1024*1024 ? (blob.size/1024/1024).toFixed(1)+' MB' : Math.round(blob.size/1024)+' KB') + ')';
+
+    // vista previa chiquita
+    var esc = 420 / p.H;
+    var pc = document.createElement('canvas');
+    pc.width = Math.round(p.W*esc); pc.height = Math.round(p.H*esc);
+    var pctx = pc.getContext('2d');
+    pctx.fillStyle = '#FFF'; pctx.fillRect(0,0,pc.width,pc.height);
+    for(var j=0;j<secuencia.length;j++){
+      var col3 = j % p.cols, fila3 = Math.floor(j / p.cols);
+      pctx.drawImage(secuencia[j].pieza,
+        (ox + col3*(p.pw+calle))*esc, (oy + fila3*(p.ph+calle))*esc,
+        p.pw*esc, p.ph*esc);
+    }
+    pctx.strokeStyle = '#DDD';
+    pctx.strokeRect(0.5, 0.5, pc.width-1, pc.height-1);
+    var vp = $('vista-previa');
+    vp.innerHTML = '';
+    vp.appendChild(pc);
+    var det = document.createElement('p');
+    det.textContent = p.W/10 + ' × ' + p.H/10 + ' cm · ' + secuencia.length + ' piezas · 300 dpi';
+    vp.appendChild(det);
+
+    $('estado').textContent = '';
+    $('btn-generar').disabled = false;
+    a.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+})();
+</script>
+</body>
+</html>
