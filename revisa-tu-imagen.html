@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Revisá tu imagen antes de imprimir</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#F7F6F2; --tinta:#17181C; --tinta-suave:#5B5C63;
+    --magenta:#D81B74; --linea:#DCDAD2; --blanco:#FFF;
+    --rojo:#C42B2B; --ambar:#B37400; --verde:#1E7A46;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--papel);color:var(--tinta);
+    font-family:'Archivo',system-ui,sans-serif;
+    font-size:16px;line-height:1.5;
+    padding:26px 16px 60px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .caja{max-width:520px;margin:0 auto}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--magenta);
+  }
+  h1{
+    font-size:clamp(26px,7vw,34px);font-weight:800;font-stretch:110%;
+    letter-spacing:-.01em;line-height:1.08;margin-top:6px;
+  }
+  p.sub{color:var(--tinta-suave);font-size:15px;margin-top:10px}
+
+  .tarjeta{
+    background:var(--blanco);border:1px solid var(--linea);
+    border-radius:14px;padding:22px 18px;margin-top:18px;
+  }
+  .oculta{display:none !important}
+  h2{font-size:18px;font-weight:700;margin-bottom:12px}
+
+  /* subida */
+  #zona{
+    border:2px dashed var(--linea);border-radius:12px;
+    padding:36px 16px;text-align:center;cursor:pointer;
+  }
+  #zona:active{border-color:var(--magenta);background:#FDF3F8}
+  #zona strong{font-size:17px}
+  #zona span{display:block;color:var(--tinta-suave);font-size:13.5px;margin-top:6px}
+  #mini{display:none;margin-top:14px;text-align:center}
+  #mini img{max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--linea)}
+  #mini div{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--tinta-suave);margin-top:8px}
+
+  /* tamaños */
+  .opciones{display:grid;gap:12px}
+  .opcion{
+    display:flex;align-items:center;gap:14px;
+    border:1.5px solid var(--linea);border-radius:12px;
+    padding:16px;cursor:pointer;background:var(--blanco);
+  }
+  .opcion input{width:20px;height:20px;accent-color:var(--magenta);flex-shrink:0}
+  .opcion.activa{border-color:var(--magenta);background:#FDF3F8}
+  .opcion b{font-size:16px;display:block}
+  .opcion small{color:var(--tinta-suave);font-size:13.5px}
+
+  .boton{
+    display:block;width:100%;text-align:center;
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;
+    padding:16px;border-radius:12px;border:none;cursor:pointer;
+    background:var(--magenta);color:var(--blanco);margin-top:18px;
+  }
+  .boton:disabled{opacity:.45}
+  .boton.secundario{background:var(--blanco);color:var(--tinta);border:1.5px solid var(--tinta)}
+  .boton.verde{background:var(--verde)}
+  .enlace{
+    display:block;text-align:center;margin-top:14px;
+    color:var(--tinta-suave);font-size:14px;text-decoration:underline;
+    background:none;border:none;cursor:pointer;width:100%;
+  }
+
+  /* progreso */
+  #progreso{text-align:center;padding:10px 0}
+  #barra{height:6px;background:var(--linea);border-radius:99px;overflow:hidden;margin-top:14px}
+  #barra div{height:100%;width:0;background:var(--magenta);transition:width .2s}
+  #progreso p{color:var(--tinta-suave);font-size:14.5px;margin-top:10px}
+
+  /* veredicto */
+  .veredicto{text-align:center;padding:6px 0 2px}
+  .veredicto .icono{font-size:44px;line-height:1}
+  .veredicto h2{font-size:22px;margin-top:10px}
+  .veredicto p{color:var(--tinta-suave);font-size:15px;margin-top:6px}
+  .problemas{list-style:none;margin-top:14px;text-align:left}
+  .problemas li{
+    border:1px solid var(--linea);border-left:4px solid var(--rojo);
+    border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:14.5px;
+  }
+  .problemas li.ambar{border-left-color:var(--ambar)}
+  .problemas li .med{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--tinta-suave);margin-top:2px;display:block;
+  }
+
+  /* prompt */
+  #caja-prompt{
+    background:#F4F1EE;border:1px solid var(--linea);border-radius:10px;
+    padding:14px;margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    white-space:pre-wrap;word-break:break-word;
+    max-height:260px;overflow:auto;text-align:left;
+  }
+  ol.pasos{margin:14px 0 0 20px;text-align:left;font-size:14.5px;color:var(--tinta-suave)}
+  ol.pasos li{margin-bottom:6px}
+
+  #preview-final{display:none;margin-top:14px;text-align:center}
+  #preview-final img{max-width:100%;max-height:260px;border-radius:8px;border:1px solid var(--linea)}
+  #preview-final div{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--tinta-suave);margin-top:8px}
+
+  footer{
+    text-align:center;margin-top:30px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--tinta-suave);
+  }
+  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="caja">
+
+  <div class="eyebrow">Antes de mandar a imprimir</div>
+  <h1>Revisá tu imagen</h1>
+  <p class="sub">Las imágenes hechas con inteligencia artificial muchas veces tienen textos que se ven bien en pantalla pero salen ilegibles impresos. Revisala acá en un minuto.</p>
+
+  <!-- PASO 1: subir -->
+  <div class="tarjeta" id="t-subida">
+    <h2>1 · Subí tu imagen</h2>
+    <div id="zona" role="button" tabindex="0">
+      <strong>Tocá acá para elegir la imagen</strong>
+      <span>La misma que te generó la IA, en la mejor calidad que tengas</span>
+    </div>
+    <input type="file" id="input-archivo" accept="image/*" hidden>
+    <div id="mini"><img alt="Tu imagen"><div></div></div>
+  </div>
+
+  <!-- PASO 2: tamaño -->
+  <div class="tarjeta oculta" id="t-tamano">
+    <h2>2 · ¿Cómo se va a imprimir?</h2>
+    <div class="opciones">
+      <label class="opcion activa">
+        <input type="radio" name="tam" value="fc" checked>
+        <div><b>10 × 15 cm — Full color</b><small>Volante estándar a todo color</small></div>
+      </label>
+      <label class="opcion">
+        <input type="radio" name="tam" value="bn">
+        <div><b>11 × 17 cm — Un solo color</b><small>Se imprime en un color solo (sin colores)</small></div>
+      </label>
+    </div>
+    <button class="boton" id="btn-revisar">Revisar mi imagen</button>
+  </div>
+
+  <!-- PROGRESO -->
+  <div class="tarjeta oculta" id="t-progreso">
+    <div id="progreso">
+      <h2>Revisando tu imagen…</h2>
+      <div id="barra"><div></div></div>
+      <p id="txt-progreso">Buscando los textos</p>
+    </div>
+  </div>
+
+  <!-- VEREDICTO MAL -->
+  <div class="tarjeta oculta" id="t-mal">
+    <div class="veredicto">
+      <div class="icono">⚠️</div>
+      <h2 id="mal-titulo">Hay textos que no se van a poder leer</h2>
+      <p id="mal-sub"></p>
+    </div>
+    <ul class="problemas" id="lista-problemas"></ul>
+
+    <h2 style="margin-top:20px">Arreglalo con tu IA</h2>
+    <ol class="pasos">
+      <li>Copiá el mensaje de abajo.</li>
+      <li>Pegalo en la misma IA donde creaste la imagen.</li>
+      <li>Cuando te dé la imagen nueva, <b>volvé acá y subila de nuevo</b>.</li>
+    </ol>
+    <div id="caja-prompt"></div>
+    <button class="boton" id="btn-copiar-prompt">Copiar mensaje para la IA</button>
+    <button class="enlace" id="btn-igual">Quiero mandarla igual así como está</button>
+  </div>
+
+  <!-- VEREDICTO BIEN -->
+  <div class="tarjeta oculta" id="t-bien">
+    <div class="veredicto">
+      <div class="icono" id="bien-icono">✅</div>
+      <h2 id="bien-titulo">¡Tu imagen está lista!</h2>
+      <p id="bien-sub">La preparamos al tamaño exacto de impresión.</p>
+    </div>
+    <div id="preview-final"><img alt="Imagen final"><div></div></div>
+    <button class="boton verde" id="btn-whatsapp">Enviar a la imprenta por WhatsApp</button>
+    <a class="enlace" id="btn-descargar" href="#" download>O descargala en tu teléfono</a>
+    <button class="enlace" id="btn-otra">Revisar otra imagen</button>
+  </div>
+
+</div>
+<footer>Herramienta de la imprenta · Funciona en tu navegador, tu imagen no se sube a ningún lado</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // Número de WhatsApp de la imprenta (con código de país, sin + ni espacios).
+  // Si queda vacío, se abre el selector para elegir el contacto.
+  var WHATSAPP_IMPRENTA = '';
+
+  var TAMANOS = {
+    fc: { w:100, h:150, nombre:'10x15cm_fullcolor', etiqueta:'10 × 15 cm full color', unColor:false },
+    bn: { w:110, h:170, nombre:'11x17cm_1color',   etiqueta:'11 × 17 cm un color',   unColor:true }
+  };
+  var SANGRADO = 3, DPI = 300;
+
+  var img = null, nombreOriginal = '', blobFinal = null, nombreFinal = '';
+  var problemas = [], dpiEfectivo = 0;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  function mostrar(ids){
+    ['t-subida','t-tamano','t-progreso','t-mal','t-bien'].forEach(function(id){
+      $(id).classList.toggle('oculta', ids.indexOf(id) === -1);
+    });
+  }
+  function tam(){
+    return TAMANOS[document.querySelector('input[name=tam]:checked').value];
+  }
+  function fmtMB(b){ return b > 1024*1024 ? (b/1024/1024).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+
+  // ---------- subida ----------
+  var zona = $('zona'), input = $('input-archivo');
+  zona.addEventListener('click', function(){ input.click(); });
+  zona.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); }});
+  input.addEventListener('change', function(){ if(input.files[0]) cargar(input.files[0]); });
+
+  function cargar(file){
+    if(!file.type.match(/^image\//)){ alert('Ese archivo no es una imagen. Elegí un JPG o PNG.'); return; }
+    nombreOriginal = file.name;
+    var im = new Image();
+    im.onload = function(){
+      img = im;
+      $('mini').style.display = 'block';
+      $('mini').querySelector('img').src = im.src;
+      $('mini').querySelector('div').textContent = im.naturalWidth + '×' + im.naturalHeight + ' px · ' + fmtMB(file.size);
+      mostrar(['t-subida','t-tamano']);
+      $('t-tamano').scrollIntoView({behavior:'smooth', block:'center'});
+    };
+    im.onerror = function(){ alert('No se pudo abrir la imagen. Probá con otra.'); };
+    im.src = URL.createObjectURL(file);
+  }
+
+  // marcar visualmente la opción elegida
+  document.querySelectorAll('.opcion input').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.querySelectorAll('.opcion').forEach(function(o){ o.classList.remove('activa'); });
+      r.closest('.opcion').classList.add('activa');
+    });
+  });
+
+  // ---------- revisión ----------
+  $('btn-revisar').addEventListener('click', revisar);
+
+  function cargarScript(src){
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function revisar(){
+    if(!img) return;
+    mostrar(['t-progreso']);
+    var t = tam();
+    // orientación automática
+    var tw = t.w, th = t.h;
+    if((img.naturalWidth >= img.naturalHeight) !== (tw >= th)){ var x = tw; tw = th; th = x; }
+
+    dpiEfectivo = Math.round(img.naturalWidth / (tw / 25.4));
+    problemas = [];
+
+    // 1) resolución
+    if(dpiEfectivo < 150){
+      problemas.push({ tipo:'res', texto:'La imagen tiene poca resolución: se va a ver pixelada impresa.' });
+    }
+
+    // 2) textos con OCR
+    var barraFill = $('barra').firstElementChild;
+    try{
+      if(typeof Tesseract === 'undefined'){
+        $('txt-progreso').textContent = 'Preparando el revisor…';
+        await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
+      }
+      $('txt-progreso').textContent = 'Leyendo los textos de tu imagen… puede tardar un minuto.';
+      var worker = await Tesseract.createWorker('spa', 1, {
+        logger: function(m){
+          if(m.status === 'recognizing text') barraFill.style.width = Math.round(m.progress*100) + '%';
+        }
+      });
+      var res = await worker.recognize(img);
+      await worker.terminate();
+
+      (res.data.lines || []).forEach(function(l){
+        var txt = (l.text || '').trim();
+        if(!txt || txt.length < 2 || (l.confidence || 0) < 35) return;
+        var hpx = l.bbox.y1 - l.bbox.y0;
+        if(hpx <= 2) return;
+        var mm = hpx / img.naturalHeight * th;
+        if(mm < 1.5) problemas.push({ tipo:'texto', nivel:'rojo', texto:txt, mm:mm });
+        else if(mm < 2.2) problemas.push({ tipo:'texto', nivel:'ambar', texto:txt, mm:mm });
+      });
+    } catch(e){ /* sin OCR seguimos con el chequeo de resolución */ }
+
+    var rojos = problemas.filter(function(p){ return p.tipo==='res' || p.nivel==='rojo'; });
+    if(rojos.length > 0){
+      prepararPantallaMal();
+      mostrar(['t-mal']);
+    } else {
+      await generarFinal();
+      if(problemas.length > 0){
+        $('bien-icono').textContent = '🟡';
+        $('bien-titulo').textContent = 'Se puede imprimir, con una advertencia';
+        $('bien-sub').textContent = 'Hay textos chicos que van a quedar justos de tamaño. Si querés que salgan perfectos, pedile a tu IA que los agrande. Si no, podés mandarla así.';
+      } else {
+        $('bien-icono').textContent = '✅';
+        $('bien-titulo').textContent = '¡Tu imagen está lista!';
+        $('bien-sub').textContent = 'Los textos se van a leer bien y la preparamos al tamaño exacto de impresión.';
+      }
+      mostrar(['t-bien']);
+    }
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function prepararPantallaMal(){
+    var t = tam();
+    var textosMal = problemas.filter(function(p){ return p.tipo==='texto'; });
+    var resMal = problemas.some(function(p){ return p.tipo==='res'; });
+
+    $('mal-titulo').textContent = resMal && textosMal.length === 0
+      ? 'La imagen tiene poca calidad para imprimir'
+      : 'Hay textos que no se van a poder leer';
+    $('mal-sub').textContent = 'Impresa a ' + t.etiqueta + ', esto es lo que encontramos:';
+
+    var ul = $('lista-problemas');
+    ul.innerHTML = '';
+    problemas.forEach(function(p){
+      var li = document.createElement('li');
+      if(p.tipo === 'res'){
+        li.textContent = p.texto;
+      } else {
+        li.className = p.nivel === 'ambar' ? 'ambar' : '';
+        li.textContent = '“' + p.texto + '”';
+        var s = document.createElement('span');
+        s.className = 'med';
+        s.textContent = 'Va a medir ' + p.mm.toFixed(1) + ' mm de alto — ' + (p.nivel==='rojo' ? 'ilegible' : 'muy justo');
+        li.appendChild(s);
+      }
+      ul.appendChild(li);
+    });
+
+    $('caja-prompt').textContent = generarPrompt();
+  }
+
+  function generarPrompt(){
+    var t = tam();
+    var textosMal = problemas.filter(function(p){ return p.tipo==='texto'; }).map(function(p){ return '"' + p.texto + '"'; });
+    var resMal = problemas.some(function(p){ return p.tipo==='res'; });
+
+    var lineas = [];
+    lineas.push('Regenerá esta misma imagen manteniendo el diseño, los colores y la composición, pero corregí lo siguiente para que se pueda imprimir en un volante de ' + t.etiqueta + ':');
+    lineas.push('');
+    if(textosMal.length > 0){
+      lineas.push('- Estos textos quedan demasiado chicos al imprimir: ' + textosMal.join(', ') + '. Hacelos MUCHO más grandes: cada línea de texto debe medir como mínimo el 4% de la altura total de la imagen.');
+      lineas.push('- Usá una tipografía simple, gruesa y sin adornos, con alto contraste entre el texto y el fondo (por ejemplo texto oscuro sobre fondo claro).');
+      lineas.push('- No agregues textos nuevos ni cambies lo que dicen.');
+    }
+    if(resMal){
+      lineas.push('- Generá la imagen en la resolución más alta posible (mínimo ' + Math.ceil(t.w/25.4*300) + ' × ' + Math.ceil(t.h/25.4*300) + ' píxeles).');
+    }
+    if(t.unColor){
+      lineas.push('- La imagen se va a imprimir en UN SOLO COLOR (sin colores): usá contraste fuerte de claros y oscuros, y que ninguna información dependa del color para entenderse.');
+    }
+    lineas.push('- La proporción de la imagen debe ser ' + t.w + ':' + t.h + ' (formato vertical de ' + (t.w/10) + ' × ' + (t.h/10) + ' cm).');
+    return lineas.join('\n');
+  }
+
+  $('btn-copiar-prompt').addEventListener('click', function(){
+    navigator.clipboard.writeText($('caja-prompt').textContent).then(function(){
+      $('btn-copiar-prompt').textContent = '¡Copiado! Pegalo en tu IA';
+      setTimeout(function(){ $('btn-copiar-prompt').textContent = 'Copiar mensaje para la IA'; }, 2500);
+    });
+  });
+
+  $('btn-igual').addEventListener('click', async function(){
+    await generarFinal();
+    $('bien-icono').textContent = '🟡';
+    $('bien-titulo').textContent = 'Lista para enviar (con textos chicos)';
+    $('bien-sub').textContent = 'La preparamos al tamaño de impresión. Tené en cuenta que algunos textos pueden salir ilegibles.';
+    mostrar(['t-bien']);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // ---------- generación del archivo final ----------
+  async function generarFinal(){
+    var t = tam();
+    var tw = t.w, th = t.h;
+    if((img.naturalWidth >= img.naturalHeight) !== (tw >= th)){ var x = tw; tw = th; th = x; }
+    var wMM = tw + SANGRADO*2, hMM = th + SANGRADO*2;
+    var wPX = Math.round(wMM/25.4*DPI), hPX = Math.round(hMM/25.4*DPI);
+
+    var esc = Math.max(wPX/img.naturalWidth, hPX/img.naturalHeight);
+    var dw = img.naturalWidth*esc, dh = img.naturalHeight*esc;
+
+    // reducción por pasos
+    var fuente = img, fw = img.naturalWidth, fh = img.naturalHeight;
+    while(fw/2 > dw && fh/2 > dh){
+      var tmp = document.createElement('canvas');
+      tmp.width = Math.round(fw/2); tmp.height = Math.round(fh/2);
+      var c = tmp.getContext('2d');
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(fuente, 0, 0, tmp.width, tmp.height);
+      fuente = tmp; fw = tmp.width; fh = tmp.height;
+    }
+
+    var out = document.createElement('canvas');
+    out.width = wPX; out.height = hPX;
+    var octx = out.getContext('2d');
+    octx.imageSmoothingQuality = 'high';
+    octx.fillStyle = '#FFF';
+    octx.fillRect(0,0,wPX,hPX);
+    octx.drawImage(fuente, (wPX-dw)/2, (hPX-dh)/2, dw, dh);
+
+    // un solo color → escala de grises (pixel a pixel, compatible con todos los celulares)
+    if(t.unColor){
+      var d = octx.getImageData(0,0,wPX,hPX), px = d.data;
+      for(var i=0;i<px.length;i+=4){
+        var g = px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114;
+        px[i]=px[i+1]=px[i+2]=g;
+      }
+      octx.putImageData(d,0,0);
+    }
+
+    blobFinal = await new Promise(function(res){ out.toBlob(res, 'image/jpeg', 0.9); });
+    nombreFinal = 'volante_' + t.nombre + '_300dpi.jpg';
+
+    var pv = $('preview-final');
+    pv.style.display = 'block';
+    pv.querySelector('img').src = URL.createObjectURL(blobFinal);
+    pv.querySelector('div').textContent = nombreFinal + ' · ' + fmtMB(blobFinal.size);
+    var a = $('btn-descargar');
+    a.href = pv.querySelector('img').src;
+    a.download = nombreFinal;
+  }
+
+  // ---------- compartir ----------
+  $('btn-whatsapp').addEventListener('click', async function(){
+    if(!blobFinal) return;
+    var file = new File([blobFinal], nombreFinal, { type:'image/jpeg' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      try{
+        await navigator.share({
+          files:[file],
+          title:'Volante para imprimir',
+          text:'Hola! Te mando mi imagen ya revisada y lista para imprimir.'
+        });
+        return;
+      } catch(e){ if(e.name === 'AbortError') return; }
+    }
+    // fallback: descargar y abrir WhatsApp
+    $('btn-descargar').click();
+    var texto = encodeURIComponent('Hola! Te mando mi imagen ya revisada y lista para imprimir (la adjunto ahora).');
+    var url = WHATSAPP_IMPRENTA
+      ? 'https://wa.me/' + WHATSAPP_IMPRENTA + '?text=' + texto
+      : 'https://wa.me/?text=' + texto;
+    setTimeout(function(){ window.open(url, '_blank'); }, 600);
+  });
+
+  $('btn-otra').addEventListener('click', function(){ location.reload(); });
+
+})();
+</script>
+</body>
+</html>
