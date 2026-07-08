@@ -191,6 +191,7 @@
     </div>
     <div id="preview-final"><img alt="Imagen final"><div></div></div>
     <button class="boton verde" id="btn-whatsapp">Enviar a la imprenta por WhatsApp</button>
+    <p style="text-align:center;font-size:13px;color:var(--tinta-suave);margin-top:8px">Se envía como PDF: WhatsApp no le baja la calidad, llega lista para imprimir.</p>
     <a class="enlace" id="btn-descargar" href="#" download>O descargala en tu teléfono</a>
     <button class="enlace" id="btn-otra">Revisar otra imagen</button>
   </div>
@@ -440,22 +441,34 @@
       octx.putImageData(d,0,0);
     }
 
-    blobFinal = await new Promise(function(res){ out.toBlob(res, 'image/jpeg', 0.9); });
-    nombreFinal = 'volante_' + t.nombre + '_300dpi.jpg';
+    // PDF con tamaño de página exacto: WhatsApp lo envía como documento y NO lo comprime
+    var jpegDataUrl = out.toDataURL('image/jpeg', 0.92);
+    if(typeof window.jspdf === 'undefined'){
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    var pdf = new window.jspdf.jsPDF({
+      unit:'mm',
+      format:[wMM, hMM],
+      orientation: wMM > hMM ? 'l' : 'p',
+      compress:true
+    });
+    pdf.addImage(jpegDataUrl, 'JPEG', 0, 0, wMM, hMM);
+    blobFinal = pdf.output('blob');
+    nombreFinal = 'volante_' + t.nombre + '_300dpi.pdf';
 
     var pv = $('preview-final');
     pv.style.display = 'block';
-    pv.querySelector('img').src = URL.createObjectURL(blobFinal);
-    pv.querySelector('div').textContent = nombreFinal + ' · ' + fmtMB(blobFinal.size);
+    pv.querySelector('img').src = jpegDataUrl;
+    pv.querySelector('div').textContent = nombreFinal + ' · ' + fmtMB(blobFinal.size) + ' · el PDF viaja sin perder calidad';
     var a = $('btn-descargar');
-    a.href = pv.querySelector('img').src;
+    a.href = URL.createObjectURL(blobFinal);
     a.download = nombreFinal;
   }
 
   // ---------- compartir ----------
   $('btn-whatsapp').addEventListener('click', async function(){
     if(!blobFinal) return;
-    var file = new File([blobFinal], nombreFinal, { type:'image/jpeg' });
+    var file = new File([blobFinal], nombreFinal, { type:'application/pdf' });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
       try{
         await navigator.share({
