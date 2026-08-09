@@ -109,6 +109,8 @@ details[open] summary::before{content:'− '}
 .ref .t{flex:1}
 .ref .v{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
 .ref .d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)}
+.modal{position:fixed;inset:0;background:rgba(25,21,18,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-in{background:var(--paper);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--paper-2);padding:13px 20px;border-radius:10px;font-size:14.5px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -160,7 +162,6 @@ details[open] summary::before{content:'− '}
     <div id="desglose"></div>
     <div class="total"><span class="l">Lo que te cuesta</span><span class="v mono" id="costoTotal">$0</span></div>
     <div class="chips" style="margin-top:12px">
-      <button class="chip warn" id="tgFactura">Factura · +21%</button>
       <button class="chip on" id="tgAjuste">Ajustar por antigüedad</button>
     </div>
   </div>
@@ -256,11 +257,10 @@ details[open] summary::before{content:'− '}
     <label class="fl">Recargo por trabajo cortado</label><input type="number" class="mono" id="cfgRecCortado" step="500" inputmode="numeric">
   </div>
   <div class="card">
-    <p class="card-t">Sobres y offset propio</p>
-    <label class="fl">Caja de 500 sobres oficio</label><input type="number" class="mono" id="cfgSobreOf" step="500" inputmode="numeric">
-    <label class="fl">Caja de 500 sobres inglés</label><input type="number" class="mono" id="cfgSobreIn" step="500" inputmode="numeric">
-    <label class="fl">Caja de 500 sobres bolsa</label><input type="number" class="mono" id="cfgSobreBo" step="500" inputmode="numeric">
-    <label class="fl">Impresión por sobre</label><input type="number" class="mono" id="cfgImpSobre" step="10" inputmode="numeric">
+    <p class="card-t">Sobres, planillas y mantelitos</p>
+    <label class="fl">Caja de 500 sobres oficio inglés — costo</label><input type="number" class="mono" id="cfgCajaSobres" step="500" inputmode="numeric">
+    <label class="fl">Lo que cobran por caja, full color</label><input type="number" class="mono" id="cfgVentaSobres" step="1000" inputmode="numeric">
+    <label class="fl">Blocado de planillas — por block de 100</label><input type="number" class="mono" id="cfgBlocado" step="100" inputmode="numeric">
     <label class="fl">Mantelitos y alfombras — base negro por millar</label><input type="number" class="mono" id="cfgBaseNegro" step="1000" inputmode="numeric">
     <label class="fl">Recargo por talonario autocopiativo (%)</label><input type="number" class="mono" id="cfgQuimico" step="5" inputmode="numeric">
   </div>
@@ -335,11 +335,27 @@ const BN={
 };
 const MEGA={'Duplicado · 50 juegos · ½ oficio':{1:10100,2:14600,3:18200,4:22500,5:26900,10:47700},
   'Triplicado · 25 juegos · ½ oficio':{1:17200,2:20200,5:30300,10:38900}};
-const REF_MINGO=[{t:'1 talonario duplicado, 50 juegos, ½ oficio',v:16000,u:16000},
-  {t:'500 juegos cuadruplicados A4',v:229000,u:458}];
+const TALON={
+  'Común · 2 por pliego oficio':{pz:2,curva:{1:16000,5:40000,10:70000}},
+  'Proas · marca de agua · 6 por pliego':{pz:6,curva:{1:12000,2:20000,10:45000,20:65000,40:97000}}
+};
+function curvaPrecio(c,cant){
+  const ks=Object.keys(c).map(Number).sort((a,b)=>a-b);
+  if(c[cant]!==undefined)return{p:c[cant],exacto:true,txt:`precio de lista para ${cant}`};
+  if(cant<ks[0])return{p:c[ks[0]]*cant/ks[0],txt:`proporcional al precio de ${ks[0]}`};
+  const bajo=ks.filter(k=>k<cant).pop(),alto=ks.find(k=>k>cant);
+  if(alto!==undefined){
+    const p=c[bajo]+(c[alto]-c[bajo])*(cant-bajo)/(alto-bajo);
+    return{p,txt:`entre el precio de ${bajo} (${pesos(c[bajo])}) y el de ${alto} (${pesos(c[alto])})`};
+  }
+  const ant=ks[ks.length-2],ult=ks[ks.length-1];
+  const marg=(c[ult]-c[ant])/(ult-ant);
+  return{p:c[ult]+marg*(cant-ult),txt:`${pesos(c[ult])} por ${ult} más ${pesos(marg)} por cada talonario extra`};
+}
 const CATS={
   color:{n:'Impresión digital u offset color',u:'pieza',rinde:true,t:'color'},
   bn:{n:'Blanco y negro',u:'pieza',rinde:true,t:'bn'},
+  planillas:{n:'Planillas',u:'hoja',t:'planilla'},
   talonarios:{n:'Talonarios enumerados',u:'talonario',t:'talon'},
   sobres:{n:'Sobres impresos',u:'sobre',t:'sobres'},
   mantel:{n:'Mantelitos y alfombras',u:'millar',t:'mantel'},
@@ -355,8 +371,8 @@ const CFG_DEF={fechas:{tata:FUENTES.tata.fecha,oeste:FUENTES.oeste.fecha,mega:FU
   mingo:FUENTES.mingo.fecha,lam:FUENTES.lam.fecha},
   inflAnual:15,mult:2,multBaja:1.5,multTerc:2,umbral:100000,resma:7500,tinta:6,
   master:0,arranque:0,iman:0,corte:150,minMetros:1,lamA3:0,numSuelto:0,recColor:0,recCortado:0,
-  sobreOf:0,sobreIn:0,sobreBo:0,impSobre:0,baseNegro:0,quimico:0,
-  dolar:0,dolarFecha:'',factura:false,ajuste:true};
+  cajaSobres:31000,ventaSobres:110000,blocado:0,baseNegro:0,quimico:0,
+  dolar:0,dolarFecha:'',ajuste:true,ultimaCopia:0};
 let CFG=JSON.parse(JSON.stringify(CFG_DEF));
 let PRES=[],cesta=[],overrides={},multSel='habitual',redondeo=500,editando=null;
 
@@ -391,7 +407,7 @@ function calcular(){
         monto:hojas*p});
       fuente=prov;ok=true;terc=TERC.includes(mat);
       notas.push('El corte y el plegado ya van incluidos en este precio. No se cobran aparte.');
-      if(document.getElementById('ex_offset')?.classList.contains('on')){
+      if((v('op_maq','')||'').indexOf('Offset')>=0){
         if(CFG.master>0)L.push({id:'master',lbl:'Master de offset',why:'Uno por trabajo.',monto:CFG.master});
         else avisos.push(falta('Falta cargar el master de offset en Ajustes.'));
         if(CFG.arranque>0)L.push({id:'arr',lbl:'Arranque de máquina',why:'Cargo fijo del trabajo.',monto:CFG.arranque});
@@ -420,40 +436,35 @@ function calcular(){
     }
   }
   else if(cat.t==='talon'){
-    const copias=nv('op_copias',2),juegos=nv('op_juegos',50),pz=nv('op_pz',2);
-    const quim=document.getElementById('ex_quim')?.classList.contains('on');
-    const hojasTal=juegos*copias,hojas=Math.ceil(hojasTal*cant/pz);
-    const B=BN['Oficio 22×34 · obra 70g'];
-    const i=idxTramo(B.tramos,hojas),p=B.p[0][i];
-    let costoRef=hojas*p+(CFG.master>0?CFG.master:0);
+    const tipo=v('op_tal',Object.keys(TALON)[0]),T=TALON[tipo];
+    const juegos=nv('op_juegos',50),copias=nv('op_copias',2);
+    const r0=curvaPrecio(T.curva,cant);
+    const fAj=factor(CFG.fechas.mingo);
+    const vta=r0.p*fAj;
+    L.push({id:'venta',venta:true,lbl:'Tu precio',
+      why:`${cant} talonario${cant>1?'s':''} — ${r0.txt}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}. El numerado va incluido.`,
+      monto:vta});
+    // costo de referencia
+    const hojas=Math.ceil(juegos*copias*cant/T.pz);
+    const B=BN['Oficio 22×34 · obra 70g'],i2=idxTramo(B.tramos,hojas),pp=B.p[0][i2];
     L.push({id:'ref_papel',ref:true,lbl:'Papel — referencia',
-      why:`${cant} talonario${cant>1?'s':''} × ${juegos} juegos × ${copias} copias = ${hojasTal*cant} hojas ÷ ${pz} por pliego = ${hojas} pliegos × ${pesos(p)}`,
-      monto:hojas*p});
+      why:`${cant} × ${juegos} juegos × ${copias} copias = ${juegos*copias*cant} hojas ÷ ${T.pz} por pliego = ${hojas} pliegos × ${pesos(pp)}`,
+      monto:hojas*pp});
     if(CFG.master>0)L.push({id:'ref_master',ref:true,lbl:'Master — referencia',why:'Uno por trabajo.',monto:CFG.master});
     else avisos.push(falta('Falta el master de offset en Ajustes. El costo de referencia sale incompleto.'));
-    const base=nv('propio',16000);
-    let vta=base*cant;
-    if(quim&&CFG.quimico>0)vta*=1+CFG.quimico/100;
-    L.push({id:'venta',venta:true,lbl:'Tu precio',
-      why:`${cant} × ${pesos(base)}${quim&&CFG.quimico>0?` +${CFG.quimico}% por autocopiativo`:''}. El numerado va incluido, no se cobra aparte.`,
-      monto:vta});
-    if(quim&&CFG.quimico===0)avisos.push(falta('Falta el recargo por autocopiativo en Ajustes.'));
-    refs=REF_MINGO.map(r=>({...r,vAj:r.v*factor(CFG.fechas.mingo)}));
-    fuente='mingo';ok=base>0;
-    notas.push('El numerado está incluido en el precio del talonario.');
+    refs=Object.entries(TALON).map(([n,t])=>({n,curva:t.curva}));
+    ok=true;
+    notas.push('Este precio es el que vienen cobrando, no sale de multiplicar un costo.');
   }
   else if(cat.t==='sobres'){
-    const f=v('op_sobre','Oficio');
-    const pc={'Oficio':CFG.sobreOf,'Inglés':CFG.sobreIn,'Bolsa':CFG.sobreBo}[f]||0;
     const cajas=Math.ceil(cant/500);
-    if(pc>0)L.push({id:'cajas',lbl:`Sobres ${f.toLowerCase()}`,
-      why:`${cant} ÷ 500 por caja = ${cajas} caja${cajas>1?'s':''} × ${pesos(pc)}`,monto:cajas*pc});
-    else avisos.push(falta(`Falta el precio de la caja de sobres ${f.toLowerCase()} en Ajustes.`));
-    if(CFG.impSobre>0)L.push({id:'imp',lbl:'Impresión',why:`${cant} × ${pesos(CFG.impSobre)}`,monto:cant*CFG.impSobre});
-    else avisos.push(falta('Falta el costo de impresión por sobre en Ajustes.'));
-    if(document.getElementById('ex_offset')?.classList.contains('on')&&CFG.master>0)
-      L.push({id:'master',lbl:'Master de offset',why:'Uno por trabajo.',monto:CFG.master});
-    ok=pc>0&&CFG.impSobre>0;
+    const pv=nv('propio',CFG.ventaSobres);
+    L.push({id:'ref_caja',ref:true,lbl:'Cajas — referencia',
+      why:`${cant} ÷ 500 por caja = ${cajas} caja${cajas>1?'s':''} × ${pesos(CFG.cajaSobres)}`,monto:cajas*CFG.cajaSobres});
+    L.push({id:'venta',venta:true,lbl:'Tu precio',
+      why:`${cajas} caja${cajas>1?'s':''} × ${pesos(pv)} full color, impresión incluida.`,monto:cajas*pv});
+    ok=pv>0;
+    notas.push('Sobres oficio inglés, que es el único formato que manejan.');
   }
   else if(cat.t==='mantel'){
     const tipo=v('op_tipo','Mantelitos');
@@ -473,6 +484,20 @@ function calcular(){
       else avisos.push(falta('Falta el recargo por trabajo cortado.'));
     }
     notas.push('El papel lo provee el cliente, acá se cobra solo la impresión.');
+  }
+  else if(cat.t==='planilla'){
+    const fmt=v('op_fmt','A4'),faz=v('op_faz','Simple faz'),dbl=faz.indexOf('Doble')>=0;
+    const B=BN[fmt==='A4'?'A4 · obra 75g':'Oficio 22×34 · obra 70g'];
+    const i2=idxTramo(B.tramos,cant),p=B.p[dbl?1:0][i2];
+    L.push({id:'base',lbl:`Planillas ${fmt} · ${dbl?'1/1':'1/0'}`,
+      why:`${cant} hojas × ${pesos(p)} (tramo ${B.txt[i2]})`,monto:cant*p});
+    fuente='tata';
+    const blocks=Math.ceil(cant/100);
+    if(CFG.blocado>0)L.push({id:'bloc',lbl:'Blocado',
+      why:`${cant} ÷ 100 = ${blocks} block${blocks>1?'s':''} × ${pesos(CFG.blocado)}`,monto:blocks*CFG.blocado});
+    else avisos.push(falta(`Van ${blocks} block${blocks>1?'s':''} de 100 hojas. Falta el costo del blocado en Ajustes, así que no está sumado.`));
+    ok=true;
+    notas.push('Las planillas van siempre en negro.');
   }
   else if(cat.t==='iman'){
     const an=nv('op_an',5),al=nv('op_al',5);
@@ -540,11 +565,6 @@ function calcular(){
       monto:sub*(f-1),tog:true});
   }
   let costo=suma(l=>!l.venta&&!l.ref),ventaFija=suma(l=>l.venta),costoRef=suma(l=>l.ref);
-  if(CFG.factura){
-    const iva=(costo+ventaFija)*0.21;
-    L.push({id:'iva',lbl:'IVA 21%',why:'Las listas son en efectivo. Se suma solo si el cliente pide factura.',monto:iva,tog:true,venta:true});
-    if(!apagado('iva'))ventaFija+=over('iva')??iva;
-  }
   return {catId,cat,cant,lineas:L,costo,ventaFija,costoRef,ok,fuente,avisos,refs,terc,notas};
 }
 
@@ -565,7 +585,7 @@ function renderOpciones(keep){
     h+=sel('op_fmt','Formato',fmts,fmt);
     const mats=Object.keys(COLOR[prov][fmt].mats);
     h+=sel('op_mat','Papel',mats,(keep&&mats.includes(v('op_mat')))?v('op_mat'):mats[0]);
-    extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_offset">Va en offset · master</button></div>`;
+    extras=`<label class="fl">¿Cómo se imprime?</label><select id="op_maq"><option>Digital · sin master</option><option>Offset · suma master y arranque</option></select>`;
   }
   else if(cat.t==='bn'){
     h+=sel('op_fmt','Formato',Object.keys(BN),keep?v('op_fmt'):null);
@@ -573,19 +593,20 @@ function renderOpciones(keep){
     extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_num">Numerado suelto</button></div>`;
   }
   else if(cat.t==='talon'){
+    h+=sel('op_tal','Tipo de talonario',Object.keys(TALON),keep?v('op_tal'):null);
     h+=`<label class="fl">Copias</label><select id="op_copias"><option value="2">Duplicado</option><option value="3">Triplicado</option><option value="4">Cuadruplicado</option></select>`;
     h+=num('op_juegos','Juegos por talonario',keep?nv('op_juegos',50):50,25);
-    h+=num('op_pz','Talonarios que salen de un pliego',keep?nv('op_pz',2):2,1);
-    campos=num('propio','Tu precio por talonario',keep?nv('propio',16000):16000,500);
-    extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_quim">Autocopiativo (químico)</button></div>`;
   }
   else if(cat.t==='sobres'){
-    h+=sel('op_sobre','Formato',['Oficio','Inglés','Bolsa'],keep?v('op_sobre'):null);
-    extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_offset">Va en offset · master</button></div>`;
+    campos=num('propio','Tu precio por caja de 500, full color',keep?nv('propio',CFG.ventaSobres):CFG.ventaSobres,1000);
   }
   else if(cat.t==='mantel'){
     h+=sel('op_tipo','Producto',['Mantelitos','Alfombras'],keep?v('op_tipo'):null);
     extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_color">Color distinto al negro</button><button class="chip" id="ex_cort">Cortado</button></div>`;
+  }
+  else if(cat.t==='planilla'){
+    h+=sel('op_fmt','Formato',['A4','Oficio'],keep?v('op_fmt'):null);
+    h+=sel('op_faz','Caras',['Simple faz','Doble faz'],keep?v('op_faz'):null);
   }
   else if(cat.t==='iman'){
     h+=`<div class="grid2"><div>${num('op_an','Ancho de la pieza (cm)',keep?nv('op_an',5):5,0.5)}</div>`+
@@ -657,7 +678,6 @@ function render(){
     $('#refs').innerHTML=r.refs.map(x=>`<div class="ref"><span class="t">${x.t}<div class="d">${pesos(x.u)} por talonario · hoy ${pesos(x.vAj)}</div></span><span class="v">${pesos(x.v)}</span></div>`).join('')+
       Object.entries(MEGA).map(([t,o])=>`<div class="ref"><span class="t">${t}<div class="d">lo que cobra Mega, para comparar</div></span><span class="v">${pesos(o[1])}</span></div>`).join('')+extra;
   }
-  $('#tgFactura').classList.toggle('on',CFG.factura);
   $('#tgAjuste').classList.toggle('on',CFG.ajuste);
   renderPrecio(r);
 }
@@ -695,6 +715,45 @@ function renderPrecio(r){
   $('#avisoMult').innerHTML=precio<costoReal&&r.ok?`<div class="note"><b>Ojo:</b> queda por debajo del costo. Perdés ${pesos(costoReal-precio)}.</div>`:'';
 }
 /* ===== CESTA / REGISTRO ===== */
+function snapshot(){
+  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:nv('rinde',1),mult:multSel,
+    multCustom:nv('multCustom',2),redondeo,overrides:JSON.parse(JSON.stringify(overrides)),campos:{}};
+  $$('#opcWrap select,#opcWrap input,#campos input,#extrasWrap select').forEach(e=>{if(e.id)o.campos[e.id]=e.value});
+  return o;
+}
+function restaurar(s){
+  if(!s)return;
+  $('#cat').value=s.cat;renderOpciones(false);
+  Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
+  if(s.campos&&s.campos.op_prov)renderOpciones(true);
+  Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
+  $('#cant').value=s.cant;if($('#rinde'))$('#rinde').value=s.rinde;
+  multSel=s.mult||'habitual';if($('#multCustom'))$('#multCustom').value=s.multCustom||2;
+  redondeo=s.redondeo??500;overrides=s.overrides||{};
+  render();
+}
+function textoItem(s){
+  if(!s)return '';
+  const c=CATS[s.cat];if(!c)return '';
+  const vals=Object.entries(s.campos||{}).filter(([k])=>k!=='op_prov').map(([,v])=>v);
+  const prov=s.campos&&s.campos.op_prov?FUENTES[s.campos.op_prov].n:'';
+  return [prov,...vals,s.rinde>1?`${s.rinde} por hoja`:''].filter(Boolean).join(' · ');
+}
+function nomCliente(r){
+  const c=r.cat,t=c.t;
+  const g=id=>{const e=document.getElementById(id);return e?(e.options?e.options[e.selectedIndex].text:e.value):''};
+  if(t==='libre')return v('libreDesc','')||'Trabajo';
+  if(t==='talon')return `${c.n} — ${g('op_copias')}`;
+  if(t==='color')return `${c.n} — ${g('op_mat')}`;
+  if(t==='bn')return `${c.n} — ${g('op_fmt')}`;
+  if(t==='planilla')return `${c.n} — ${g('op_fmt')} ${g('op_faz').toLowerCase()}`;
+  if(t==='sobres')return 'Sobres oficio inglés full color';
+  if(t==='mantel')return g('op_tipo');
+  if(t==='iman')return `${c.n} — ${nv('op_an',0)}×${nv('op_al',0)} cm`;
+  if(t==='lam')return `${c.n} — ${g('op_lam')}`;
+  if(t==='gf')return g('op_gf');
+  return c.n;
+}
 function nomItem(r){
   const c=r.cat;
   if(c.t==='libre')return v('libreDesc','')||'Trabajo';
@@ -706,9 +765,17 @@ function nomItem(r){
 function renderCesta(){
   if(!cesta.length){$('#cesta').innerHTML='<div class="empty">Todavía no agregaste nada.</div>';$('#cestaTotal').textContent='$0';return}
   $('#cesta').innerHTML=cesta.map((it,i)=>`<div class="item"><div class="d"><div class="n">${it.nombre}</div>
-    <div class="m">${it.cant} ${it.unidad}${it.cant>1?'s':''} · te cuesta ${pesos(it.costo)}</div></div>
+    <div class="m">${it.cant} ${it.unidad}${it.cant>1?'s':''} · te cuesta ${pesos(it.costo)} · ×${it.mult}</div>
+    ${it.cfg?`<div class="m">${textoItem(it.cfg)}</div>`:''}
+    <button class="ln-act" data-e="${i}">Editar</button></div>
     <div class="p">${pesos(it.precio)}</div><button class="x" data-i="${i}">×</button></div>`).join('');
   $$('#cesta .x').forEach(b=>b.addEventListener('click',()=>{cesta.splice(+b.dataset.i,1);renderCesta()}));
+  $$('#cesta [data-e]').forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.e,it=cesta[i];
+    if(!it.cfg){toast('Este ítem es viejo, no guardó el seteo');return}
+    restaurar(it.cfg);cesta.splice(i,1);renderCesta();
+    document.querySelector('#tab-cotizar .card').scrollIntoView({behavior:'smooth'});
+    toast('Editalo y volvé a agregarlo')}));
   $('#cestaTotal').textContent=pesos(cesta.reduce((a,i)=>a+i.precio,0));
 }
 let fEstado='todos';
@@ -724,9 +791,10 @@ function renderRegistro(){
     <div class="rec-h"><span class="rec-c">${p.cliente||'Sin cliente'}</span><span class="rec-p">${pesos(p.total)}</span></div>
     <div class="rec-d">${new Date(p.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})} · costo ${pesos(p.costo)} · ganás ${pesos(p.total-p.costo)} <span class="tag ${p.estado}">${p.estado}</span></div>
     <div class="rec-w">${p.trabajo||'—'}</div>
-    ${p.items.length>1?`<div class="rec-d" style="margin-top:6px">${p.items.length} trabajos</div>`:''}
+    <div class="rec-d" style="margin-top:6px">${p.items.map(i=>`${i.cant} ${i.unidad}${i.cant>1?'s':''} · ${i.nombre}${i.cfg?' · '+textoItem(i.cfg):''} · ×${i.mult} · ${pesos(i.precio)}`).join('<br>')}</div>
     ${p.notas?`<div class="rec-d" style="margin-top:6px">${p.notas}</div>`:''}
-    <div class="rec-f"><button data-a="rep" data-id="${p.id}">Repetir</button>
+    <div class="rec-f"><button data-a="edi" data-id="${p.id}">Editar</button>
+    <button data-a="rep" data-id="${p.id}">Repetir</button>
     <button data-a="wa" data-id="${p.id}">WhatsApp</button>
     <button data-a="est" data-id="${p.id}">${p.estado==='cerrado'?'Marcar enviado':'Marcar cerrado'}</button>
     <button data-a="del" data-id="${p.id}">Borrar</button></div></div>`).join('');
@@ -737,20 +805,49 @@ async function accion(a,id){
   if(a==='del'){if(!confirm('¿Borrar este presupuesto?'))return;PRES=PRES.filter(x=>x.id!==id)}
   if(a==='est')p.estado=p.estado==='cerrado'?'enviado':'cerrado';
   if(a==='rep'){cesta=p.items.map(i=>({...i}));$('#cliente').value=p.cliente;$('#trabajo').value=p.trabajo;
-    $('#notas').value=p.notas||'';renderCesta();tab('cotizar');toast('Copiado al armador');return}
+    $('#notas').value=p.notas||'';editando=null;renderCesta();tab('cotizar');
+    if(p.items[0]&&p.items[0].cfg)restaurar(p.items[0].cfg);
+    toast('Copiado al armador');return}
+  if(a==='edi'){cesta=p.items.map(i=>({...i}));$('#cliente').value=p.cliente;$('#trabajo').value=p.trabajo;
+    $('#notas').value=p.notas||'';editando=p.id;renderCesta();tab('cotizar');
+    if(p.items[0]&&p.items[0].cfg)restaurar(p.items[0].cfg);
+    toast('Editando este presupuesto');return}
   if(a==='wa'){compartir(p);return}
   await store.set('presupuestos',PRES);renderRegistro();
 }
 function textoWA(p){
-  let t='*Presupuesto*\n';if(p.cliente)t+=`Para: ${p.cliente}\n`;
-  t+=`Fecha: ${new Date(p.fecha).toLocaleDateString('es-AR')}\n\n`;
-  p.items.forEach(i=>{t+=`• ${i.nombre}\n  ${i.cant} ${i.unidad}${i.cant>1?'s':''} — ${pesos(i.precio)}\n`});
-  return t+`\n*Total: ${pesos(p.total)}*\n\nPrecio en efectivo, válido por 7 días.`;
+  const f=new Date(p.fecha).toLocaleDateString('es-AR');
+  let t=`🧾 *Presupuesto* · ${f}\n\n`;
+  t+=p.cliente?`¡Hola ${p.cliente}! Te paso el presupuesto que me consultaste:\n\n`
+              :`¡Hola! Te paso el presupuesto que me consultaste:\n\n`;
+  p.items.forEach(i=>{
+    t+=`▪️ ${i.nombreC||i.nombre}\n   ${i.cant} ${i.unidad}${i.cant>1?'s':''} — ${pesos(i.precio)}\n`;
+  });
+  t+=`\n*Total: ${pesos(p.total)}*\n\nCualquier duda, escribime 🙌`;
+  return t;
 }
 function compartir(p){
   const t=textoWA(p);
-  if(navigator.share){navigator.share({text:t}).catch(()=>{});return}
-  navigator.clipboard.writeText(t).then(()=>toast('Texto copiado'),()=>toast('No se pudo copiar'));
+  const m=document.createElement('div');
+  m.className='modal';
+  m.innerHTML=`<div class="modal-in"><p class="card-t">Revisá el mensaje antes de mandarlo</p>
+    <textarea id="waTxt" style="min-height:250px">${t.replace(/</g,'&lt;')}</textarea>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" data-x="1">Cancelar</button>
+      <button class="btn btn-p" data-ok="1">Enviar</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector('[data-x]').onclick=()=>m.remove();
+  m.querySelector('[data-ok]').onclick=()=>{
+    const txt=m.querySelector('#waTxt').value;m.remove();
+    if(navigator.share){navigator.share({text:txt}).catch(()=>{});return}
+    navigator.clipboard.writeText(txt).then(()=>toast('Texto copiado'),()=>toast('No se pudo copiar'));
+  };
+}
+async function copiaAuto(){
+  const dias=(Date.now()-(CFG.ultimaCopia||0))/86400000;
+  if(dias<7||!PRES.length)return;
+  await store.set('respaldo',{config:CFG,presupuestos:PRES,fecha:Date.now()});
+  CFG.ultimaCopia=Date.now();await store.set('config',CFG);
 }
 
 /* ===== PRECIOS ===== */
@@ -770,8 +867,7 @@ function renderTablas(){
     Object.entries(MEGA).map(([t,o])=>`<tr><td>${t}</td><td style="font-size:12px">${Object.entries(o).map(([k,p])=>`${k}: ${pesos(p)}`).join(' · ')}</td></tr>`).join('')+'</table></div></details>';
   const pend=[['Master de offset',CFG.master],['Arranque de máquina',CFG.arranque],['Metro de imán',CFG.iman],
     ['Laminado Super A3',CFG.lamA3],['Numerado suelto',CFG.numSuelto],['Recargo por color',CFG.recColor],
-    ['Recargo por cortado',CFG.recCortado],['Caja sobres oficio',CFG.sobreOf],['Caja sobres inglés',CFG.sobreIn],
-    ['Caja sobres bolsa',CFG.sobreBo],['Impresión por sobre',CFG.impSobre],['Base negro por millar',CFG.baseNegro],
+    ['Recargo por cortado',CFG.recCortado],['Base negro por millar',CFG.baseNegro],
     ['Recargo autocopiativo',CFG.quimico]].filter(x=>!x[1]);
   if(pend.length)h+=`<details open><summary>Faltan ${pend.length} datos</summary>`+
     pend.map(x=>`<div class="ref"><span class="t">${x[0]}</span><span class="v">—</span></div>`).join('')+
@@ -782,7 +878,7 @@ function renderTablas(){
 const MAP={cfgInfl:'inflAnual',cfgMult:'mult',cfgMultBaja:'multBaja',cfgMultTerc:'multTerc',cfgUmbral:'umbral',
   cfgResma:'resma',cfgTinta:'tinta',cfgMaster:'master',cfgArranque:'arranque',cfgIman:'iman',cfgCorte:'corte',
   cfgMinMetros:'minMetros',cfgLamA3:'lamA3',cfgNumSuelto:'numSuelto',cfgRecColor:'recColor',cfgRecCortado:'recCortado',
-  cfgSobreOf:'sobreOf',cfgSobreIn:'sobreIn',cfgSobreBo:'sobreBo',cfgImpSobre:'impSobre',
+  cfgCajaSobres:'cajaSobres',cfgVentaSobres:'ventaSobres',cfgBlocado:'blocado',
   cfgBaseNegro:'baseNegro',cfgQuimico:'quimico',cfgDolar:'dolar'};
 function cargarAjustes(){
   $('#cfgFechas').innerHTML=Object.entries(FUENTES).map(([k,f])=>
@@ -815,7 +911,6 @@ function tab(n){
 $$('nav button').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 $('#cat').addEventListener('change',()=>{overrides={};renderOpciones(false);render()});
 ['cant','multCustom','rinde'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
-$('#tgFactura').addEventListener('click',async()=>{CFG.factura=!CFG.factura;await store.set('config',CFG);render()});
 $('#tgAjuste').addEventListener('click',async()=>{CFG.ajuste=!CFG.ajuste;await store.set('config',CFG);render()});
 $('#addItem').addEventListener('click',()=>{
   const r=calcular();if(!r.ok){toast('Falta completar el trabajo');return}
@@ -823,7 +918,7 @@ $('#addItem').addEventListener('click',()=>{
   const mult=multSel==='habitual'?base:multSel==='baja'?CFG.multBaja:nv('multCustom',1);
   let precio=r.costo*mult+r.ventaFija;if(redondeo)precio=Math.ceil(precio/redondeo)*redondeo;
   const uni=(r.cat.rinde||r.cat.t==='iman')?'pieza':r.cat.u;
-  cesta.push({nombre:nomItem(r),cant:r.cant,unidad:uni,costo:r.costo+r.costoRef,precio,mult});
+  cesta.push({nombre:nomItem(r),nombreC:nomCliente(r),cant:r.cant,unidad:uni,costo:r.costo+r.costoRef,precio,mult,cfg:snapshot()});
   overrides={};renderCesta();toast('Agregado')});
 async function guardar(estado){
   if(!cesta.length){toast('El presupuesto está vacío');return null}
@@ -831,7 +926,10 @@ async function guardar(estado){
     cliente:v('cliente','').trim(),trabajo:v('trabajo','').trim(),notas:v('notas','').trim(),
     items:cesta.map(i=>({...i})),costo:cesta.reduce((a,i)=>a+i.costo,0),
     total:cesta.reduce((a,i)=>a+i.precio,0),estado};
-  PRES=PRES.filter(x=>x.id!==p.id);PRES.push(p);await store.set('presupuestos',PRES);return p}
+  PRES=PRES.filter(x=>x.id!==p.id);PRES.push(p);await store.set('presupuestos',PRES);
+  await store.set('respaldo',{config:CFG,presupuestos:PRES,fecha:Date.now()});
+  CFG.ultimaCopia=Date.now();await store.set('config',CFG);
+  return p}
 function limpiar(){cesta=[];editando=null;renderCesta();$('#cliente').value='';$('#trabajo').value='';$('#notas').value=''}
 $('#guardar').addEventListener('click',async()=>{const p=await guardar('borrador');if(p){limpiar();toast('Guardado')}});
 $('#enviar').addEventListener('click',async()=>{const p=await guardar('enviado');if(p){compartir(p);limpiar()}});
