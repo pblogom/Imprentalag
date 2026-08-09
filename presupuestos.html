@@ -111,6 +111,19 @@ details[open] summary::before{content:'− '}
 .ref .d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)}
 .modal{position:fixed;inset:0;background:rgba(25,21,18,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .modal-in{background:var(--paper);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.estado{font-size:13.5px;font-weight:600;margin:9px 0 12px;padding-left:16px;position:relative}
+.estado::before{content:'';position:absolute;left:0;top:6px;width:9px;height:9px;border-radius:50%}
+.estado.borrador{color:var(--ink-3)}.estado.borrador::before{background:var(--ink-3)}
+.estado.enviado{color:var(--amber)}.estado.enviado::before{background:var(--amber)}
+.estado.cerrado{color:var(--green)}.estado.cerrado::before{background:var(--green)}
+.rec .btn{margin-top:0}
+details.mas{border-top:0;padding:10px 0 0;margin-top:10px}
+details.mas summary{font-size:14px;color:var(--ink-3);font-weight:600}
+details.mas summary::before{content:'';}
+details.mas summary::after{content:' ▾'}
+details.mas[open] summary::after{content:' ▴'}
+.det{margin-top:6px}
+.destacado{outline:3px solid var(--magenta)!important;outline-offset:2px;background:var(--magenta-soft)!important}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--paper-2);padding:13px 20px;border-radius:10px;font-size:14.5px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -193,10 +206,8 @@ details[open] summary::before{content:'− '}
     <label class="fl">Cliente</label><input type="text" id="cliente" placeholder="Nombre o comercio">
     <label class="fl">Qué es</label><input type="text" id="trabajo" placeholder="Ej. volantes para la panadería">
     <label class="fl">Notas internas</label><textarea id="notas" placeholder="No se envían al cliente"></textarea>
-    <div class="btn-row" style="margin-top:14px">
-      <button class="btn btn-s" id="guardar">Guardar</button>
-      <button class="btn btn-p" id="enviar">Texto para WhatsApp</button>
-    </div>
+    <button class="btn btn-p" id="guardar">Guardar presupuesto</button>
+    <p class="sm">Se guarda en el registro y desde ahí lo enviás por WhatsApp.</p>
   </div>
 </section>
 
@@ -389,7 +400,7 @@ function nv(id,d){const e=document.getElementById(id);return e?(+e.value||d):d}
 function piezasHoja(){return nv('rinde',1)}
 function over(id){const o=overrides[id];return o&&o.monto!==undefined?o.monto:undefined}
 function apagado(id){return overrides[id]&&overrides[id].off}
-const falta=t=>({falta:t});
+const falta=(t,campo)=>({falta:t,campo});
 
 /* ================= CÁLCULO ================= */
 function calcular(){
@@ -409,7 +420,7 @@ function calcular(){
       notas.push('El corte y el plegado ya van incluidos en este precio. No se cobran aparte.');
       if((v('op_maq','')||'').indexOf('Offset')>=0){
         if(CFG.master>0)L.push({id:'master',lbl:'Master de offset',why:'Uno por trabajo.',monto:CFG.master});
-        else avisos.push(falta('Falta cargar el master de offset en Ajustes.'));
+        else avisos.push(falta('Falta cargar el master de offset.','cfgMaster'));
         if(CFG.arranque>0)L.push({id:'arr',lbl:'Arranque de máquina',why:'Cargo fijo del trabajo.',monto:CFG.arranque});
       }
       const otro=prov==='tata'?'oeste':'tata',G=COLOR[otro]&&COLOR[otro][fmt];
@@ -451,7 +462,7 @@ function calcular(){
       why:`${cant} × ${juegos} juegos × ${copias} copias = ${juegos*copias*cant} hojas ÷ ${T.pz} por pliego = ${hojas} pliegos × ${pesos(pp)}`,
       monto:hojas*pp});
     if(CFG.master>0)L.push({id:'ref_master',ref:true,lbl:'Master — referencia',why:'Uno por trabajo.',monto:CFG.master});
-    else avisos.push(falta('Falta el master de offset en Ajustes. El costo de referencia sale incompleto.'));
+    else avisos.push(falta('Falta el master de offset. El costo de referencia sale incompleto.','cfgMaster'));
     refs=Object.entries(TALON).map(([n,t])=>({n,curva:t.curva}));
     ok=true;
     notas.push('Este precio es el que vienen cobrando, no sale de multiplicar un costo.');
@@ -474,14 +485,14 @@ function calcular(){
       if(CFG.master>0)L.push({id:'master',lbl:'Master de offset',why:'Uno por trabajo.',monto:CFG.master});
       if(CFG.arranque>0)L.push({id:'arr',lbl:'Arranque de máquina',why:'Cargo fijo del trabajo.',monto:CFG.arranque});
       ok=true;
-    }else avisos.push(falta('Falta la tarifa base en negro por millar en Ajustes.'));
+    }else avisos.push(falta('Falta la tarifa base en negro por millar.','cfgBaseNegro'));
     if(document.getElementById('ex_color')?.classList.contains('on')){
       if(CFG.recColor>0)L.push({id:'rc',venta:true,lbl:'Recargo por color',why:'Fijo por trabajo, sobre el precio final.',monto:CFG.recColor});
-      else avisos.push(falta('Falta el recargo por color distinto al negro.'));
+      else avisos.push(falta('Falta el recargo por color distinto al negro.','cfgRecColor'));
     }
     if(document.getElementById('ex_cort')?.classList.contains('on')){
       if(CFG.recCortado>0)L.push({id:'rk',venta:true,lbl:'Recargo por cortado',why:'Fijo por trabajo, sobre el precio final.',monto:CFG.recCortado});
-      else avisos.push(falta('Falta el recargo por trabajo cortado.'));
+      else avisos.push(falta('Falta el recargo por trabajo cortado.','cfgRecCortado'));
     }
     notas.push('El papel lo provee el cliente, acá se cobra solo la impresión.');
   }
@@ -495,7 +506,7 @@ function calcular(){
     const blocks=Math.ceil(cant/100);
     if(CFG.blocado>0)L.push({id:'bloc',lbl:'Blocado',
       why:`${cant} ÷ 100 = ${blocks} block${blocks>1?'s':''} × ${pesos(CFG.blocado)}`,monto:blocks*CFG.blocado});
-    else avisos.push(falta(`Van ${blocks} block${blocks>1?'s':''} de 100 hojas. Falta el costo del blocado en Ajustes, así que no está sumado.`));
+    else avisos.push(falta(`Van ${blocks} block${blocks>1?'s':''} de 100 hojas. Falta el costo del blocado, así que no está sumado.`,'cfgBlocado'));
     ok=true;
     notas.push('Las planillas van siempre en negro.');
   }
@@ -506,7 +517,7 @@ function calcular(){
     if(CFG.iman>0)L.push({id:'iman',lbl:'Plancha de imán',
       why:`piso(60÷${al}) × piso(100÷${an}) = ${porMetro} piezas por metro. Hacen falta ${metros} metro${metros>1?'s':''} × ${pesos(CFG.iman)}`,
       monto:metros*CFG.iman});
-    else avisos.push(falta('Falta el precio del metro de imán en Ajustes.'));
+    else avisos.push(falta('Falta el precio del metro de imán.','cfgIman'));
     const hojas=Math.ceil(cant/piezasHoja());
     const F=COLOR.tata['Super A3+ · 31×46'],i=idxTramo(F.tramos,hojas),p=F.mats['Autoadhesivo'][i];
     L.push({id:'adh',lbl:'Autoadhesivo impreso',why:`${hojas} hojas × ${pesos(p)} (autoadhesivo super A3, tramo ${F.txt[i]})`,monto:hojas*p});
@@ -523,7 +534,7 @@ function calcular(){
       ok=true;
     }else{
       if(CFG.lamA3>0){L.push({id:'lam',venta:true,lbl:'Laminado 32×47',why:`${cant} pliegos × ${pesos(CFG.lamA3)}. Ya es precio de venta.`,monto:cant*CFG.lamA3});ok=true}
-      else avisos.push(falta('Falta el precio del laminado de pliego Super A3 en Ajustes.'));
+      else avisos.push(falta('Falta el precio del laminado de pliego Super A3.','cfgLamA3'));
     }
   }
   else if(cat.t==='gf'){
@@ -553,14 +564,14 @@ function calcular(){
   // numerado suelto
   if(document.getElementById('ex_num')?.classList.contains('on')){
     if(CFG.numSuelto>0)L.push({id:'num',venta:true,lbl:'Numerado suelto',why:'Fijo por trabajo, no por millar ni por pieza.',monto:CFG.numSuelto});
-    else avisos.push(falta('Falta el monto del numerado suelto en Ajustes.'));
+    else avisos.push(falta('Falta el monto del numerado suelto.','cfgNumSuelto'));
   }
 
   const suma=f=>L.reduce((a,l)=>a+(f(l)&&!apagado(l.id)?(over(l.id)??l.monto):0),0);
   const sub=suma(l=>!l.venta&&!l.ref);
   if(CFG.ajuste&&fuente&&sub>0&&cat.t!=='talon'){
     const f=factor(CFG.fechas[fuente]),m=meses(CFG.fechas[fuente]);
-    if(f>1.001)L.push({id:'ajuste',lbl:'Ajuste por antigüedad',
+    if(f>1.001)L.push({id:'ajuste',lbl:'Ajuste por inflación',
       why:`La lista de ${FUENTES[fuente].n} es del ${fmtFecha(CFG.fechas[fuente])}, hace ${Math.round(m)} ${Math.round(m)===1?'mes':'meses'}. Con ${CFG.inflAnual}% anual eso es ${((f-1)*100).toFixed(1)}% más.`,
       monto:sub*(f-1),tog:true});
   }
@@ -664,9 +675,10 @@ function render(){
     ln.querySelector('.ln-edit button').addEventListener('click',()=>{overrides[id]={...overrides[id],monto:+i.value||0};render()})}));
 
   $('#aviso1').innerHTML=r.avisos.map(a=>a.falta
-    ?`<div class="note"><b>Falta un dato.</b> ${a.falta}</div>`
+    ?`<div class="note"><b>Falta un dato.</b> ${a.falta}${a.campo?`<button data-ir="${a.campo}">Cargarlo ahora →</button>`:''}</div>`
     :`<div class="note${a.ok?' ok':''}">${a.t}${a.cambiar?`<button data-sw="${a.cambiar}">Cambiar a ${FUENTES[a.cambiar].n}</button>`:''}</div>`
   ).join('')+r.notas.map(n=>`<p class="sm">${n}</p>`).join('');
+  $$('#aviso1 [data-ir]').forEach(b=>b.addEventListener('click',()=>irACampo(b.dataset.ir)));
   $$('#aviso1 [data-sw]').forEach(b=>b.addEventListener('click',()=>{
     $('#op_prov').value=b.dataset.sw;overrides={};renderOpciones(true);render()}));
 
@@ -716,7 +728,8 @@ function renderPrecio(r){
 }
 /* ===== CESTA / REGISTRO ===== */
 function snapshot(){
-  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:nv('rinde',1),mult:multSel,
+  const usaRinde=!$('#rindeWrap').classList.contains('hide');
+  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:usaRinde?nv('rinde',1):0,mult:multSel,
     multCustom:nv('multCustom',2),redondeo,overrides:JSON.parse(JSON.stringify(overrides)),campos:{}};
   $$('#opcWrap select,#opcWrap input,#campos input,#extrasWrap select').forEach(e=>{if(e.id)o.campos[e.id]=e.value});
   return o;
@@ -727,7 +740,7 @@ function restaurar(s){
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
   if(s.campos&&s.campos.op_prov)renderOpciones(true);
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
-  $('#cant').value=s.cant;if($('#rinde'))$('#rinde').value=s.rinde;
+  $('#cant').value=s.cant;if($('#rinde')&&s.rinde)$('#rinde').value=s.rinde;
   multSel=s.mult||'habitual';if($('#multCustom'))$('#multCustom').value=s.multCustom||2;
   redondeo=s.redondeo??500;overrides=s.overrides||{};
   render();
@@ -787,23 +800,40 @@ function renderRegistro(){
   const l=PRES.filter(p=>(fEstado==='todos'||p.estado===fEstado)&&
     ((p.cliente||'')+' '+(p.trabajo||'')).toLowerCase().includes(q)).sort((a,b)=>b.fecha-a.fecha);
   if(!l.length){$('#lista').innerHTML='<div class="empty">No hay presupuestos acá.</div>';return}
-  $('#lista').innerHTML=l.map(p=>`<div class="rec">
+  $('#lista').innerHTML=l.map(p=>{
+    const est={borrador:'Sin enviar',enviado:'Enviado, esperando respuesta',cerrado:'Cerrado'}[p.estado];
+    const primario=p.estado==='borrador'
+      ? `<button class="btn btn-p" data-a="wa" data-id="${p.id}">Enviar por WhatsApp</button>`
+      : p.estado==='enviado'
+      ? `<button class="btn btn-p" data-a="cerrar" data-id="${p.id}">El cliente lo aceptó</button>`
+      : `<button class="btn btn-s" data-a="rep" data-id="${p.id}">Hacer otro igual</button>`;
+    return `<div class="rec">
     <div class="rec-h"><span class="rec-c">${p.cliente||'Sin cliente'}</span><span class="rec-p">${pesos(p.total)}</span></div>
-    <div class="rec-d">${new Date(p.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})} · costo ${pesos(p.costo)} · ganás ${pesos(p.total-p.costo)} <span class="tag ${p.estado}">${p.estado}</span></div>
-    <div class="rec-w">${p.trabajo||'—'}</div>
-    <div class="rec-d" style="margin-top:6px">${p.items.map(i=>`${i.cant} ${i.unidad}${i.cant>1?'s':''} · ${i.nombre}${i.cfg?' · '+textoItem(i.cfg):''} · ×${i.mult} · ${pesos(i.precio)}`).join('<br>')}</div>
-    ${p.notas?`<div class="rec-d" style="margin-top:6px">${p.notas}</div>`:''}
-    <div class="rec-f"><button data-a="edi" data-id="${p.id}">Editar</button>
-    <button data-a="rep" data-id="${p.id}">Repetir</button>
-    <button data-a="wa" data-id="${p.id}">WhatsApp</button>
-    <button data-a="est" data-id="${p.id}">${p.estado==='cerrado'?'Marcar enviado':'Marcar cerrado'}</button>
-    <button data-a="del" data-id="${p.id}">Borrar</button></div></div>`).join('');
-  $$('#lista .rec-f button').forEach(b=>b.addEventListener('click',()=>accion(b.dataset.a,b.dataset.id)));
+    <div class="rec-w">${p.trabajo||p.items.map(i=>i.nombreC||i.nombre).join(', ')}</div>
+    <div class="rec-d">${new Date(p.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})} · ganás ${pesos(p.total-p.costo)}</div>
+    <div class="estado ${p.estado}">${est}</div>
+    ${primario}
+    <details class="mas"><summary>Otras opciones</summary>
+      <div class="rec-f">
+        ${p.estado!=='borrador'?`<button data-a="wa" data-id="${p.id}">Volver a enviar</button>`:''}
+        <button data-a="edi" data-id="${p.id}">Editar</button>
+        <button data-a="rep" data-id="${p.id}">Hacer otro igual</button>
+        ${p.estado==='cerrado'?`<button data-a="reabrir" data-id="${p.id}">Marcar sin cerrar</button>`:''}
+        <button data-a="det" data-id="${p.id}">Ver el detalle</button>
+        <button data-a="del" data-id="${p.id}">Borrar</button>
+      </div>
+      <div class="det hide" id="det-${p.id}">${p.items.map(i=>
+        `<div class="ref"><span class="t">${i.nombre}<div class="d">${i.cfg?textoItem(i.cfg)+' · ':''}×${i.mult} · te cuesta ${pesos(i.costo)}</div></span><span class="v">${pesos(i.precio)}</span></div>`).join('')}
+        ${p.notas?`<p class="sm">${p.notas}</p>`:''}</div>
+    </details></div>`}).join('');
+  $$('#lista [data-a]').forEach(b=>b.addEventListener('click',()=>accion(b.dataset.a,b.dataset.id)));
 }
 async function accion(a,id){
   const p=PRES.find(x=>x.id===id);if(!p)return;
   if(a==='del'){if(!confirm('¿Borrar este presupuesto?'))return;PRES=PRES.filter(x=>x.id!==id)}
-  if(a==='est')p.estado=p.estado==='cerrado'?'enviado':'cerrado';
+  if(a==='cerrar')p.estado='cerrado';
+  if(a==='reabrir')p.estado='enviado';
+  if(a==='det'){const e=document.getElementById('det-'+id);if(e)e.classList.toggle('hide');return}
   if(a==='rep'){cesta=p.items.map(i=>({...i}));$('#cliente').value=p.cliente;$('#trabajo').value=p.trabajo;
     $('#notas').value=p.notas||'';editando=null;renderCesta();tab('cotizar');
     if(p.items[0]&&p.items[0].cfg)restaurar(p.items[0].cfg);
@@ -812,7 +842,9 @@ async function accion(a,id){
     $('#notas').value=p.notas||'';editando=p.id;renderCesta();tab('cotizar');
     if(p.items[0]&&p.items[0].cfg)restaurar(p.items[0].cfg);
     toast('Editando este presupuesto');return}
-  if(a==='wa'){compartir(p);return}
+  if(a==='wa'){compartir(p,async()=>{
+      if(p.estado==='borrador'){p.estado='enviado';await store.set('presupuestos',PRES);renderRegistro()}
+    });return}
   await store.set('presupuestos',PRES);renderRegistro();
 }
 function textoWA(p){
@@ -826,7 +858,7 @@ function textoWA(p){
   t+=`\n*Total: ${pesos(p.total)}*\n\nCualquier duda, escribime 🙌`;
   return t;
 }
-function compartir(p){
+function compartir(p,alEnviar){
   const t=textoWA(p);
   const m=document.createElement('div');
   m.className='modal';
@@ -839,8 +871,12 @@ function compartir(p){
   m.querySelector('[data-x]').onclick=()=>m.remove();
   m.querySelector('[data-ok]').onclick=()=>{
     const txt=m.querySelector('#waTxt').value;m.remove();
-    if(navigator.share){navigator.share({text:txt}).catch(()=>{});return}
-    navigator.clipboard.writeText(txt).then(()=>toast('Texto copiado'),()=>toast('No se pudo copiar'));
+    if(alEnviar)alEnviar();
+    try{
+      if(navigator.share)navigator.share({text:txt}).catch(()=>{});
+      else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast('Texto copiado'),()=>toast('No se pudo copiar'));
+      else toast('Copialo desde el cuadro');
+    }catch(e){toast('No se pudo copiar')}
   };
 }
 async function copiaAuto(){
@@ -903,6 +939,15 @@ async function traerDolar(sil){
   }catch(e){if(!sil)toast('No se pudo traer. Cargalo a mano.')}
 }
 $('#btnDolar').addEventListener('click',()=>traerDolar(false));
+function irACampo(id){
+  tab('ajustes');
+  setTimeout(()=>{
+    const e=document.getElementById(id);if(!e)return;
+    e.scrollIntoView({behavior:'smooth',block:'center'});
+    e.classList.add('destacado');e.focus();
+    setTimeout(()=>e.classList.remove('destacado'),2600);
+  },120);
+}
 function tab(n){
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===n));
   ['cotizar','registro','precios','ajustes'].forEach(t=>$('#tab-'+t).classList.toggle('hide',t!==n));
@@ -931,8 +976,9 @@ async function guardar(estado){
   CFG.ultimaCopia=Date.now();await store.set('config',CFG);
   return p}
 function limpiar(){cesta=[];editando=null;renderCesta();$('#cliente').value='';$('#trabajo').value='';$('#notas').value=''}
-$('#guardar').addEventListener('click',async()=>{const p=await guardar('borrador');if(p){limpiar();toast('Guardado')}});
-$('#enviar').addEventListener('click',async()=>{const p=await guardar('enviado');if(p){compartir(p);limpiar()}});
+$('#guardar').addEventListener('click',async()=>{
+  const p=await guardar(editando?PRES.find(x=>x.id===editando)?.estado||'borrador':'borrador');
+  if(!p)return;limpiar();tab('registro');toast('Guardado. Ahora podés enviarlo')});
 $('#buscar').addEventListener('input',renderRegistro);
 $('#exportar').addEventListener('click',()=>{
   const b=new Blob([JSON.stringify({config:CFG,presupuestos:PRES},null,2)],{type:'application/json'});
