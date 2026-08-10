@@ -457,20 +457,36 @@ function calcular(){
       const i3=idxTramo(B.tramos,pliegos),pp=B.p[0][i3];
       const fT=factor(CFG.fechas.tata);
       const imp=pliegos*pp*fT;
-      L.push({id:'imp',venta:true,lbl:'Impresión de pliegos',
+      const ptal=nv('op_ptal',0);
+      // ---- tu precio: por talonario, lo decide Mingo ----
+      if(ptal>0){
+        L.push({id:'venta',venta:true,lbl:'Tu precio',
+          why:`${cant} talonario${cant>1?'s':''} × ${pesos(ptal)} cada uno. ${numer==='Corrida entre talonarios'?`Numeración corrida del 1 al ${nums}`:`Numerados del 1 al ${hojasT} cada uno`}${copias>1?`, ${copias===2?'duplicado':'triplicado'}`:''}. Compará con el costo de referencia de abajo.`,
+          monto:cant*ptal});
+      } else {
+        avisos.push(falta('Cargá tu precio por talonario. Guiate con el costo de referencia, tu registro y el mercado.','op_ptal'));
+      }
+      // ---- costo de referencia: pliegos + numerado + terminaciones ----
+      L.push({id:'ref_imp',ref:true,lbl:'Impresión de pliegos — referencia',
         why:`${cant} talonario${cant>1?'s':''} × ${hojasT} hojas${copias>1?` × ${copias} copias`:''} = ${piezas} piezas ÷ ${porHoja} por hoja = ${pliegos} pliegos × ${pesos(pp)} (${pf}, tramo ${B.txt[i3]})${fT>1.001?`, ajustado ${((fT-1)*100).toFixed(1)}% por la fecha de la lista`:''}.`,
         monto:imp});
       if(copias>1){
-        if(CFG.quimico>0)L.push({id:'quim',venta:true,lbl:'Papel autocopiativo',
+        if(CFG.quimico>0)L.push({id:'ref_quim',ref:true,lbl:'Autocopiativo — referencia',
           why:`Recargo del ${CFG.quimico}% sobre la impresión por llevar copias.`,monto:imp*CFG.quimico/100});
         else avisos.push(falta('Falta el recargo por autocopiativo.','cfgQuimico'));
       }
-      if(CFG.numSuelto>0)L.push({id:'numT',venta:true,lbl:'Numerado',
-        why:`${numer==='Corrida entre talonarios'?`Numeración corrida: del 1 al ${nums}`:`Del 1 al ${hojasT} en cada talonario`}. Precio fijo por trabajo — pisalo a mano si este numerado lleva más laburo.`,
-        monto:CFG.numSuelto});
+      if(CFG.numSuelto>0)L.push({id:'ref_num',ref:true,lbl:'Numerado — referencia',
+        why:'Precio fijo por trabajo. Pisalo a mano si este numerado lleva más laburo.',monto:CFG.numSuelto});
       else avisos.push(falta('Falta el monto del numerado suelto.','cfgNumSuelto'));
+      L.push({id:'ref_term',ref:true,lbl:'Terminaciones — referencia',
+        why:'Cartón/tapa, abrochado y perforado. Van a ojo: tocá el monto y cargá lo que estimes para este trabajo.',monto:0});
+      // ---- oferta alternativa para tentar al cliente ----
+      const altC=nv('op_alt',0),altP=nv('op_ptalAlt',0);
+      if(altC>0&&altP>0){
+        notas.push(`Oferta para tentar al cliente: ${altC} talonarios por ${pesos(altC*altP)} (${pesos(altP)} c/u, contra ${ptal>0?pesos(ptal):'—'} c/u de la cantidad pedida). Agregala al mensaje si te conviene.`);
+      }
       ok=true;
-      notas.push('El armado y engrampado de los talonarios no está sumado: si corresponde, ajustá el precio a mano.');
+      notas.push('El precio es por talonario y lo fijás vos: el costo de abajo es solo la referencia para no regalar el trabajo.');
     } else {
     const T=TALON[tipo];
     const juegos=nv('op_juegos',50),copias=nv('op_copias',2);
@@ -641,6 +657,10 @@ function renderOpciones(keep){
       h+=`<label class="fl">Copias</label><select id="op_copias">`+[[1,'Simple · sin copias'],[2,'Duplicado'],[3,'Triplicado']].map(([vv,tt])=>`<option value="${vv}"${String(vv)===String(cSel)?' selected':''}>${tt}</option>`).join('')+`</select>`;
       h+=sel('op_papel','Papel para los pliegos',Object.keys(BN),keep?v('op_papel','Oficio 22×34 · obra 70g'):'Oficio 22×34 · obra 70g');
       h+=sel('op_numer','Numeración',['Repetida en cada talonario','Corrida entre talonarios'],keep?v('op_numer'):null);
+      h+=num('op_ptal','Tu precio por talonario',keep?nv('op_ptal',0):0,500);
+      h+=`<p class="sm" style="margin:4px 0 8px">Fijalo mirando el costo de referencia de abajo, tu registro y lo que cobra el mercado (MercadoLibre, Mega).</p>`;
+      h+=num('op_alt','Ofrecer también otra cantidad (opcional)',keep?nv('op_alt',0):0,10);
+      h+=num('op_ptalAlt','Precio por talonario para esa cantidad',keep?nv('op_ptalAlt',0):0,500);
     }else{
       const cSel=keep?v('op_copias','2'):'2';
       h+=`<label class="fl">Copias</label><select id="op_copias">`+[[2,'Duplicado'],[3,'Triplicado'],[4,'Cuadruplicado']].map(([vv,tt])=>`<option value="${vv}"${String(vv)===String(cSel)?' selected':''}>${tt}</option>`).join('')+`</select>`;
