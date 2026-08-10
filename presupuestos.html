@@ -447,7 +447,32 @@ function calcular(){
     }
   }
   else if(cat.t==='talon'){
-    const tipo=v('op_tal',Object.keys(TALON)[0]),T=TALON[tipo];
+    const tipo=v('op_tal',Object.keys(TALON)[0]);
+    if(tipo==='Personalizado…'){
+      const hojasT=Math.max(1,nv('op_hojas',100)),porHoja=Math.max(1,nv('op_porhoja',3)),copias=Math.max(1,nv('op_copias',1));
+      const numer=v('op_numer','Repetida en cada talonario');
+      const piezas=cant*hojasT*copias,nums=cant*hojasT;
+      const pliegos=Math.ceil(piezas/porHoja);
+      const pf=v('op_papel','Oficio 22×34 · obra 70g'),B=BN[pf]||BN['Oficio 22×34 · obra 70g'];
+      const i3=idxTramo(B.tramos,pliegos),pp=B.p[0][i3];
+      const fT=factor(CFG.fechas.tata);
+      const imp=pliegos*pp*fT;
+      L.push({id:'imp',venta:true,lbl:'Impresión de pliegos',
+        why:`${cant} talonario${cant>1?'s':''} × ${hojasT} hojas${copias>1?` × ${copias} copias`:''} = ${piezas} piezas ÷ ${porHoja} por hoja = ${pliegos} pliegos × ${pesos(pp)} (${pf}, tramo ${B.txt[i3]})${fT>1.001?`, ajustado ${((fT-1)*100).toFixed(1)}% por la fecha de la lista`:''}.`,
+        monto:imp});
+      if(copias>1){
+        if(CFG.quimico>0)L.push({id:'quim',venta:true,lbl:'Papel autocopiativo',
+          why:`Recargo del ${CFG.quimico}% sobre la impresión por llevar copias.`,monto:imp*CFG.quimico/100});
+        else avisos.push(falta('Falta el recargo por autocopiativo.','cfgQuimico'));
+      }
+      if(CFG.numSuelto>0)L.push({id:'numT',venta:true,lbl:'Numerado',
+        why:`${numer==='Corrida entre talonarios'?`Numeración corrida: del 1 al ${nums}`:`Del 1 al ${hojasT} en cada talonario`}. Precio fijo por trabajo — pisalo a mano si este numerado lleva más laburo.`,
+        monto:CFG.numSuelto});
+      else avisos.push(falta('Falta el monto del numerado suelto.','cfgNumSuelto'));
+      ok=true;
+      notas.push('El armado y engrampado de los talonarios no está sumado: si corresponde, ajustá el precio a mano.');
+    } else {
+    const T=TALON[tipo];
     const juegos=nv('op_juegos',50),copias=nv('op_copias',2);
     const r0=curvaPrecio(T.curva,cant);
     const fAj=factor(CFG.fechas.mingo);
@@ -463,9 +488,12 @@ function calcular(){
       monto:hojas*pp});
     if(CFG.master>0)L.push({id:'ref_master',ref:true,lbl:'Master — referencia',why:'Uno por trabajo.',monto:CFG.master});
     else avisos.push(falta('Falta el master de offset. El costo de referencia sale incompleto.','cfgMaster'));
-    refs=Object.entries(TALON).map(([n,t])=>({n,curva:t.curva}));
     ok=true;
     notas.push('Este precio es el que vienen cobrando, no sale de multiplicar un costo.');
+    }
+    refs=Object.entries(TALON).map(([n,t])=>{
+      const rr=curvaPrecio(t.curva,cant),fM=factor(CFG.fechas.mingo);
+      return{t:n,u:rr.p/cant,v:rr.p,vAj:rr.p*fM}});
   }
   else if(cat.t==='sobres'){
     const cajas=Math.ceil(cant/500);
@@ -604,9 +632,20 @@ function renderOpciones(keep){
     extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_num">Numerado suelto</button></div>`;
   }
   else if(cat.t==='talon'){
-    h+=sel('op_tal','Tipo de talonario',Object.keys(TALON),keep?v('op_tal'):null);
-    h+=`<label class="fl">Copias</label><select id="op_copias"><option value="2">Duplicado</option><option value="3">Triplicado</option><option value="4">Cuadruplicado</option></select>`;
-    h+=num('op_juegos','Juegos por talonario',keep?nv('op_juegos',50):50,25);
+    const tSel=keep?v('op_tal'):null;
+    h+=sel('op_tal','Tipo de talonario',[...Object.keys(TALON),'Personalizado…'],tSel);
+    if(tSel==='Personalizado…'){
+      h+=num('op_hojas','Hojas numeradas por talonario',keep?nv('op_hojas',100):100,25);
+      h+=num('op_porhoja','Cuántos entran por hoja al imprimir',keep?nv('op_porhoja',3):3,1);
+      const cSel=keep?v('op_copias','1'):'1';
+      h+=`<label class="fl">Copias</label><select id="op_copias">`+[[1,'Simple · sin copias'],[2,'Duplicado'],[3,'Triplicado']].map(([vv,tt])=>`<option value="${vv}"${String(vv)===String(cSel)?' selected':''}>${tt}</option>`).join('')+`</select>`;
+      h+=sel('op_papel','Papel para los pliegos',Object.keys(BN),keep?v('op_papel','Oficio 22×34 · obra 70g'):'Oficio 22×34 · obra 70g');
+      h+=sel('op_numer','Numeración',['Repetida en cada talonario','Corrida entre talonarios'],keep?v('op_numer'):null);
+    }else{
+      const cSel=keep?v('op_copias','2'):'2';
+      h+=`<label class="fl">Copias</label><select id="op_copias">`+[[2,'Duplicado'],[3,'Triplicado'],[4,'Cuadruplicado']].map(([vv,tt])=>`<option value="${vv}"${String(vv)===String(cSel)?' selected':''}>${tt}</option>`).join('')+`</select>`;
+      h+=num('op_juegos','Juegos por talonario',keep?nv('op_juegos',50):50,25);
+    }
   }
   else if(cat.t==='sobres'){
     campos=num('propio','Tu precio por caja de 500, full color',keep?nv('propio',CFG.ventaSobres):CFG.ventaSobres,1000);
@@ -645,7 +684,7 @@ function renderOpciones(keep){
     $('#op_prov').value=b.dataset.p;overrides={};renderOpciones(true);render()}));
   $$('#extrasWrap .chip').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('on');render()}));
   $$('#opcWrap select,#opcWrap input,#campos input').forEach(e=>{
-    e.addEventListener('change',()=>{if(e.id==='op_fmt')renderOpciones(true);render()});
+    e.addEventListener('change',()=>{if(e.id==='op_fmt'||e.id==='op_tal')renderOpciones(true);render()});
     e.addEventListener('input',render)});
 }
 
