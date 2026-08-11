@@ -469,17 +469,28 @@ function calcular(){
   }
   else if(cat.t==='tarj'){
     const caras=v('op_caras','Solo frente');
+    const MIN_TARJ={'Solo frente':10000,'Frente y dorso':15000};
+    const minV=MIN_TARJ[caras]||10000;
     const r0=curvaPrecio(TARJ[caras]||TARJ['Solo frente'],cant,'tarjeta');
     const fAj=factor(CFG.fechas.mingo);
-    let vta=r0.p*fAj,minTxt='';
-    if(cant<100&&vta<10000){vta=10000;minTxt=' Se cobra el mínimo de $10.000 para menos de 100 tarjetas.';}
+    let vta,whyBase;
+    if(cant<50){
+      vta=minV*fAj;
+      whyBase=`Menos de 50 tarjetas: sale el precio fijo de ${pesos(minV)} (${caras.toLowerCase()})`;
+    } else if(r0.p<minV){
+      vta=minV*fAj;
+      whyBase=`${r0.txt}, pero se aplica el piso de ${pesos(minV)} — así al cliente le conviene ir por 100`;
+    } else {
+      vta=r0.p*fAj;
+      whyBase=r0.txt;
+    }
     L.push({id:'venta',venta:true,lbl:'Tu precio',
-      why:`${cant} tarjetas, ${caras.toLowerCase()} — ${r0.txt}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}.${minTxt}`,
+      why:`${cant} tarjetas, ${caras.toLowerCase()} — ${whyBase}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}.`,
       monto:vta});
     refs=Object.entries(TARJ).map(([n,c])=>{const rr=curvaPrecio(c,cant,'tarjeta');
-      let rv=rr.p,rvA=rr.p*fAj;
-      if(cant<100){rv=Math.max(rv,10000);rvA=Math.max(rvA,10000);}
-      return{t:n,u:rv/cant,v:rv,vAj:rvA}});
+      const mv=MIN_TARJ[n]||10000;
+      let rv=cant<50?mv:Math.max(rr.p,mv);
+      return{t:n,u:rv/cant,v:rv,vAj:rv*fAj}});
     ok=true;
     notas.push('Precio final que pasa Mingo, no sale de multiplicar un costo.');
   }
