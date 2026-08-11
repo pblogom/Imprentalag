@@ -127,6 +127,10 @@ details.mas[open] summary::after{content:' ▴'}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--paper-2);padding:13px 20px;border-radius:10px;font-size:14.5px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.curvaRow{display:flex;gap:8px;margin:6px 0;align-items:center}
+.curvaRow input{flex:1;min-width:0}
+.curvaDel{border:none;background:none;color:#c33;font-size:16px;cursor:pointer;padding:4px 8px}
+.curvaAdd{margin-top:4px}
 </style>
 </head>
 <body>
@@ -226,6 +230,13 @@ details.mas[open] summary::after{content:' ▴'}
     <label class="fl">Aumento del papel por año (%)</label>
     <input type="number" class="mono" id="cfgInfl" step="1" inputmode="numeric">
     <p class="sm" id="cfgInflSub"></p>
+  </div>
+  <div class="card">
+    <p class="card-t">Precios de Mingo — tarjetas y talonarios</p>
+    <p class="sm">Cuando Mingo pase precios nuevos, corregilos acá y quedan guardados. Cada fila es cantidad → precio.</p>
+    <div id="curvasEdit"></div>
+    <p class="sm" id="curvasInfo"></p>
+    <button class="btn btn-s" id="btnCurvasReset">Volver a los precios originales de la app</button>
   </div>
   <div class="card">
     <p class="card-t">Márgenes</p>
@@ -362,6 +373,16 @@ function curvaPrecio(c,cant,uni){
   const marg=(c[ult]-c[ant])/(ult-ant);
   return{p:c[ult]+marg*(cant-ult),txt:`${pesos(c[ult])} por ${ult} más ${pesos(marg)} por cada ${uni||'unidad'} extra`};
 }
+const DEF_CURVAS={tarj:JSON.parse(JSON.stringify(TARJ)),
+  talon:Object.fromEntries(Object.entries(TALON).map(([k,t])=>[k,{...t.curva}]))};
+function aplicarCurvas(){
+  Object.keys(TARJ).forEach(k=>TARJ[k]={...DEF_CURVAS.tarj[k]});
+  Object.keys(TALON).forEach(k=>TALON[k].curva={...DEF_CURVAS.talon[k]});
+  const cm=CFG.curvasMingo;if(!cm)return;
+  const aNum=o=>Object.fromEntries(Object.entries(o).map(([a,b])=>[+a,+b]));
+  if(cm.tarj)Object.keys(TARJ).forEach(k=>{if(cm.tarj[k]&&Object.keys(cm.tarj[k]).length>=2)TARJ[k]=aNum(cm.tarj[k])});
+  if(cm.talon)Object.keys(TALON).forEach(k=>{if(cm.talon[k]&&Object.keys(cm.talon[k]).length>=2)TALON[k].curva=aNum(cm.talon[k])});
+}
 const CATS={
   color:{n:'Impresión digital u offset color',u:'pieza',rinde:true,t:'color'},
   bn:{n:'Blanco y negro',u:'pieza',rinde:true,t:'bn'},
@@ -383,7 +404,7 @@ const CFG_DEF={fechas:{tata:FUENTES.tata.fecha,oeste:FUENTES.oeste.fecha,mega:FU
   inflAnual:15,mult:2,multBaja:1.5,multTerc:2,umbral:100000,resma:7500,tinta:6,
   master:0,arranque:0,iman:0,corte:150,minMetros:1,lamA3:0,numSuelto:0,recColor:0,recCortado:0,
   cajaSobres:31000,ventaSobres:110000,blocado:0,baseNegro:0,quimico:0,
-  dolar:0,dolarFecha:'',ajuste:true,ultimaCopia:0};
+  dolar:0,dolarFecha:'',ajuste:true,ultimaCopia:0,curvasMingo:null};
 let CFG=JSON.parse(JSON.stringify(CFG_DEF));
 let PRES=[],cesta=[],overrides={},multSel='habitual',redondeo=500,editando=null;
 
@@ -994,6 +1015,33 @@ const MAP={cfgInfl:'inflAnual',cfgMult:'mult',cfgMultBaja:'multBaja',cfgMultTerc
   cfgMinMetros:'minMetros',cfgLamA3:'lamA3',cfgNumSuelto:'numSuelto',cfgRecColor:'recColor',cfgRecCortado:'recCortado',
   cfgCajaSobres:'cajaSobres',cfgVentaSobres:'ventaSobres',cfgBlocado:'blocado',
   cfgBaseNegro:'baseNegro',cfgQuimico:'quimico',cfgDolar:'dolar'};
+function renderCurvas(){
+  aplicarCurvas();
+  const grupos=[['Tarjetas — solo frente','tarj','Solo frente'],['Tarjetas — frente y dorso','tarj','Frente y dorso'],
+    ['Talonarios — común','talon','Común · 2 por pliego oficio'],['Talonarios — Proas','talon','Proas · marca de agua · 6 por pliego']];
+  $('#curvasEdit').innerHTML=grupos.map(([tit,g,k])=>{
+    const c=g==='tarj'?TARJ[k]:TALON[k].curva;
+    const filas=Object.keys(c).map(Number).sort((a,b)=>a-b).map(q=>
+      `<div class="curvaRow"><input type="number" class="mono" data-g="${g}" data-k="${k}" value="${q}"><input type="number" class="mono" data-g="${g}" data-k="${k}" value="${c[q]}"><button class="curvaDel" type="button">✕</button></div>`).join('');
+    return `<p class="fl" style="margin-top:12px">${tit}</p>${filas}<button class="btn btn-s curvaAdd" type="button" data-g="${g}" data-k="${k}">+ Agregar cantidad</button>`;
+  }).join('');
+  $('#curvasInfo').textContent=CFG.curvasMingo
+    ?`Editados acá el ${fmtFecha(CFG.curvasMingo.editado)}. Si son precios de hoy, actualizá también la fecha "Precios de Mingo" arriba para que el ajuste por inflación arranque de cero.`
+    :'Estás usando los precios cargados en la app.';
+}
+function leerCurvas(){
+  const out={tarj:{},talon:{}};
+  $$('#curvasEdit .curvaRow').forEach(r=>{
+    const ins=r.querySelectorAll('input');if(ins.length<2)return;
+    const g=ins[0].dataset.g,k=ins[0].dataset.k,q=+ins[0].value,p=+ins[1].value;
+    if(g&&k&&q>0&&p>0){(out[g][k]=out[g][k]||{})[q]=p;}
+  });
+  return out;
+}
+async function guardarCurvas(){
+  CFG.curvasMingo={...leerCurvas(),editado:new Date().toISOString().slice(0,10)};
+  await store.set('config',CFG);aplicarCurvas();render();renderCurvas();
+}
 function cargarAjustes(){
   $('#cfgFechas').innerHTML=Object.entries(FUENTES).map(([k,f])=>
     `<label class="fl">${f.n}</label><input type="text" class="mono" data-fecha="${k}" value="${CFG.fechas[k]}" placeholder="AAAA-MM-DD">`).join('');
@@ -1002,6 +1050,7 @@ function cargarAjustes(){
   Object.entries(MAP).forEach(([el,k])=>{const e=$('#'+el);if(e)e.value=CFG[k]});
   $('#cfgInflSub').textContent=`Son ${((Math.pow(1+CFG.inflAnual/100,1/12)-1)*100).toFixed(2)}% por mes.`;
   $('#dolarInfo').textContent=CFG.dolarFecha?`Último dato: ${CFG.dolarFecha}. Podés cambiarlo a mano.`:'Todavía no se trajo la cotización.';
+  renderCurvas();
 }
 document.addEventListener('input',async e=>{
   if(!MAP[e.target.id])return;
@@ -1033,6 +1082,15 @@ function tab(n){
   window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 $('#cat').addEventListener('change',()=>{overrides={};renderOpciones(false);render()});
+$('#curvasEdit').addEventListener('change',guardarCurvas);
+$('#curvasEdit').addEventListener('click',e=>{
+  if(e.target.classList.contains('curvaDel')){e.target.closest('.curvaRow').remove();guardarCurvas();}
+  else if(e.target.classList.contains('curvaAdd')){
+    e.target.insertAdjacentHTML('beforebegin',`<div class="curvaRow"><input type="number" class="mono" data-g="${e.target.dataset.g}" data-k="${e.target.dataset.k}" placeholder="cantidad"><input type="number" class="mono" data-g="${e.target.dataset.g}" data-k="${e.target.dataset.k}" placeholder="precio"><button class="curvaDel" type="button">✕</button></div>`);}
+});
+$('#btnCurvasReset').addEventListener('click',async()=>{
+  if(!confirm('¿Volver a los precios originales de la app? Se pierden los que editaste acá.'))return;
+  CFG.curvasMingo=null;await store.set('config',CFG);aplicarCurvas();render();renderCurvas();toast('Precios originales restaurados')});
 ['cant','multCustom','rinde'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
 $('#tgAjuste').addEventListener('click',async()=>{CFG.ajuste=!CFG.ajuste;await store.set('config',CFG);render()});
 $('#addItem').addEventListener('click',()=>{
@@ -1075,6 +1133,7 @@ $('#fileIn').addEventListener('change',e=>{
 (async function(){
   const c=await store.get('config');
   if(c)CFG={...CFG_DEF,...c,fechas:{...CFG_DEF.fechas,...(c.fechas||{})}};
+  aplicarCurvas();
   const p=await store.get('presupuestos');if(p)PRES=p;
   $('#cat').innerHTML=Object.entries(CATS).map(([k,c])=>`<option value="${k}">${c.n}</option>`).join('');
   renderOpciones(false);render();renderCesta();cargarAjustes();hdDolar();traerDolar(true)})();
