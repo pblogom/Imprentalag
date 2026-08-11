@@ -152,13 +152,7 @@ details.mas[open] summary::after{content:' ▴'}
     <div id="cantWrap"><label class="fl" id="cantLbl">Cantidad</label><input type="number" class="mono" id="cant" value="1000" min="1" inputmode="numeric"></div>
     <div id="rindeWrap" class="hide">
       <label class="fl">Piezas por hoja</label>
-      <select id="rinde" class="mono">
-        <option value="1">1 · hoja entera</option><option value="2">2 · mitad</option>
-        <option value="3">3 · tira</option><option value="4" selected>4 · cuarto</option>
-        <option value="6">6</option><option value="8">8</option><option value="9">9 · pliego full color</option>
-        <option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="otro">Otro…</option>
-      </select>
-      <input type="number" id="rindeCustom" class="mono hide" min="1" step="1" value="21" style="margin-top:6px">
+      <input type="number" id="rinde" class="mono" min="1" step="1" value="4">
       <p class="sm" id="rindeSub"></p>
     </div>
     <div id="campos"></div>
@@ -403,7 +397,7 @@ function factor(f){return Math.pow(1+CFG.inflAnual/100,meses(f)/12)}
 function idxTramo(t,c){for(let i=0;i<t.length;i++)if(c<=t[i])return i;return t.length-1}
 function v(id,d){const e=document.getElementById(id);return e?e.value:d}
 function nv(id,d){const e=document.getElementById(id);return e?(+e.value||d):d}
-function piezasHoja(){const r=document.getElementById('rinde');return(r&&r.value==='otro')?Math.max(1,nv('rindeCustom',21)):nv('rinde',1)}
+function piezasHoja(){return Math.max(1,nv('rinde',1))}
 function over(id){const o=overrides[id];return o&&o.monto!==undefined?o.monto:undefined}
 function apagado(id){return overrides[id]&&overrides[id].off}
 const falta=(t,campo)=>({falta:t,campo});
@@ -715,7 +709,6 @@ function renderOpciones(keep){
   const usaRinde=!!cat.rinde;
   $('#rindeWrap').classList.toggle('hide',!usaRinde);
   if(usaRinde)$('#rindeWrap').querySelector('label').textContent=cat.t==='iman'?'Adhesivos por hoja A3':'Piezas por pliego';
-  $('#rindeCustom').classList.toggle('hide',!usaRinde||$('#rinde').value!=='otro');
   $('#cantLbl').textContent={gf:'Metros',talon:'Cantidad de talonarios',tarj:'Cantidad de tarjetas',mantel:'Millares',
     lam:'Pliegos a laminar',terc:'Cantidad (informativa)',sobres:'Cantidad de sobres'}[cat.t]||
     (usaRinde?'Cantidad de piezas terminadas':'Cantidad');
@@ -809,7 +802,7 @@ function renderPrecio(r){
 /* ===== CESTA / REGISTRO ===== */
 function snapshot(){
   const usaRinde=!$('#rindeWrap').classList.contains('hide');
-  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:usaRinde?($('#rinde').value==='otro'?'otro':nv('rinde',1)):0,rindeC:usaRinde?nv('rindeCustom',0):0,mult:multSel,
+  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:usaRinde?nv('rinde',1):0,mult:multSel,
     multCustom:nv('multCustom',2),redondeo,overrides:JSON.parse(JSON.stringify(overrides)),campos:{}};
   $$('#opcWrap select,#opcWrap input,#campos input,#extrasWrap select').forEach(e=>{if(e.id)o.campos[e.id]=e.value});
   return o;
@@ -820,7 +813,7 @@ function restaurar(s){
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
   if(s.campos&&s.campos.op_prov)renderOpciones(true);
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
-  $('#cant').value=s.cant;if($('#rinde')&&s.rinde){$('#rinde').value=s.rinde;if(s.rinde==='otro'&&s.rindeC)$('#rindeCustom').value=s.rindeC}
+  $('#cant').value=s.cant;if($('#rinde')&&s.rinde)$('#rinde').value=(s.rinde==='otro'&&s.rindeC)?s.rindeC:s.rinde;
   multSel=s.mult||'habitual';if($('#multCustom'))$('#multCustom').value=s.multCustom||2;
   redondeo=s.redondeo??500;overrides=s.overrides||{};
   render();
@@ -1035,7 +1028,7 @@ function tab(n){
   window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 $('#cat').addEventListener('change',()=>{overrides={};renderOpciones(false);render()});
-['cant','multCustom','rinde','rindeCustom'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
+['cant','multCustom','rinde'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
 $('#tgAjuste').addEventListener('click',async()=>{CFG.ajuste=!CFG.ajuste;await store.set('config',CFG);render()});
 $('#addItem').addEventListener('click',()=>{
   const r=calcular();if(!r.ok){toast('Falta completar el trabajo');return}
