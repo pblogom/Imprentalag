@@ -450,10 +450,15 @@ function calcular(){
     const caras=v('op_caras','Solo frente');
     const r0=curvaPrecio(TARJ[caras]||TARJ['Solo frente'],cant,'tarjeta');
     const fAj=factor(CFG.fechas.mingo);
+    let vta=r0.p*fAj,minTxt='';
+    if(cant<100&&vta<10000){vta=10000;minTxt=' Se cobra el mínimo de $10.000 para menos de 100 tarjetas.';}
     L.push({id:'venta',venta:true,lbl:'Tu precio',
-      why:`${cant} tarjetas, ${caras.toLowerCase()} — ${r0.txt}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}.`,
-      monto:r0.p*fAj});
-    refs=Object.entries(TARJ).map(([n,c])=>{const rr=curvaPrecio(c,cant,'tarjeta');return{t:n,u:rr.p/cant,v:rr.p,vAj:rr.p*fAj}});
+      why:`${cant} tarjetas, ${caras.toLowerCase()} — ${r0.txt}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}.${minTxt}`,
+      monto:vta});
+    refs=Object.entries(TARJ).map(([n,c])=>{const rr=curvaPrecio(c,cant,'tarjeta');
+      let rv=rr.p,rvA=rr.p*fAj;
+      if(cant<100){rv=Math.max(rv,10000);rvA=Math.max(rvA,10000);}
+      return{t:n,u:rv/cant,v:rv,vAj:rvA}});
     ok=true;
     notas.push('Precio final que pasa Mingo, no sale de multiplicar un costo.');
   }
