@@ -156,8 +156,9 @@ details.mas[open] summary::after{content:' ▴'}
         <option value="1">1 · hoja entera</option><option value="2">2 · mitad</option>
         <option value="3">3 · tira</option><option value="4" selected>4 · cuarto</option>
         <option value="6">6</option><option value="8">8</option><option value="9">9 · pliego full color</option>
-        <option value="12">12</option><option value="16">16</option><option value="20">20</option>
+        <option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="otro">Otro…</option>
       </select>
+      <input type="number" id="rindeCustom" class="mono hide" min="1" step="1" value="21" style="margin-top:6px">
       <p class="sm" id="rindeSub"></p>
     </div>
     <div id="campos"></div>
@@ -350,7 +351,11 @@ const TALON={
   'Común · 2 por pliego oficio':{pz:2,curva:{1:16000,5:40000,10:70000}},
   'Proas · marca de agua · 6 por pliego':{pz:6,curva:{1:12000,2:20000,10:45000,20:65000,40:97000}}
 };
-function curvaPrecio(c,cant){
+const TARJ={
+  'Solo frente':{100:15000,200:25000,300:40000,500:50000,1000:80000},
+  'Frente y dorso':{100:20000,200:35000,300:50000,500:60000,1000:95000}
+};
+function curvaPrecio(c,cant,uni){
   const ks=Object.keys(c).map(Number).sort((a,b)=>a-b);
   if(c[cant]!==undefined)return{p:c[cant],exacto:true,txt:`precio de lista para ${cant}`};
   if(cant<ks[0])return{p:c[ks[0]]*cant/ks[0],txt:`proporcional al precio de ${ks[0]}`};
@@ -361,11 +366,12 @@ function curvaPrecio(c,cant){
   }
   const ant=ks[ks.length-2],ult=ks[ks.length-1];
   const marg=(c[ult]-c[ant])/(ult-ant);
-  return{p:c[ult]+marg*(cant-ult),txt:`${pesos(c[ult])} por ${ult} más ${pesos(marg)} por cada talonario extra`};
+  return{p:c[ult]+marg*(cant-ult),txt:`${pesos(c[ult])} por ${ult} más ${pesos(marg)} por cada ${uni||'unidad'} extra`};
 }
 const CATS={
   color:{n:'Impresión digital u offset color',u:'pieza',rinde:true,t:'color'},
   bn:{n:'Blanco y negro',u:'pieza',rinde:true,t:'bn'},
+  tarjetas:{n:'Tarjetas personales',u:'tarjeta',t:'tarj'},
   planillas:{n:'Planillas',u:'hoja',t:'planilla'},
   talonarios:{n:'Talonarios enumerados',u:'talonario',t:'talon'},
   sobres:{n:'Sobres impresos',u:'sobre',t:'sobres'},
@@ -397,7 +403,7 @@ function factor(f){return Math.pow(1+CFG.inflAnual/100,meses(f)/12)}
 function idxTramo(t,c){for(let i=0;i<t.length;i++)if(c<=t[i])return i;return t.length-1}
 function v(id,d){const e=document.getElementById(id);return e?e.value:d}
 function nv(id,d){const e=document.getElementById(id);return e?(+e.value||d):d}
-function piezasHoja(){return nv('rinde',1)}
+function piezasHoja(){const r=document.getElementById('rinde');return(r&&r.value==='otro')?Math.max(1,nv('rindeCustom',21)):nv('rinde',1)}
 function over(id){const o=overrides[id];return o&&o.monto!==undefined?o.monto:undefined}
 function apagado(id){return overrides[id]&&overrides[id].off}
 const falta=(t,campo)=>({falta:t,campo});
@@ -445,6 +451,17 @@ function calcular(){
       fuente='tata';ok=true;
       notas.push('El corte y el plegado ya van incluidos.');
     }
+  }
+  else if(cat.t==='tarj'){
+    const caras=v('op_caras','Solo frente');
+    const r0=curvaPrecio(TARJ[caras]||TARJ['Solo frente'],cant,'tarjeta');
+    const fAj=factor(CFG.fechas.mingo);
+    L.push({id:'venta',venta:true,lbl:'Tu precio',
+      why:`${cant} tarjetas, ${caras.toLowerCase()} — ${r0.txt}${fAj>1.001?`, ajustado ${((fAj-1)*100).toFixed(1)}% desde ${fmtFecha(CFG.fechas.mingo)}`:''}.`,
+      monto:r0.p*fAj});
+    refs=Object.entries(TARJ).map(([n,c])=>{const rr=curvaPrecio(c,cant,'tarjeta');return{t:n,u:rr.p/cant,v:rr.p,vAj:rr.p*fAj}});
+    ok=true;
+    notas.push('Precio final que pasa Mingo, no sale de multiplicar un costo.');
   }
   else if(cat.t==='talon'){
     const tipo=v('op_tal',Object.keys(TALON)[0]);
@@ -647,6 +664,9 @@ function renderOpciones(keep){
     h+=`<label class="fl">Caras</label><select id="op_caras"><option value="0">1/0 · solo frente</option><option value="1">1/1 · frente y dorso</option></select>`;
     extras=`<label class="fl">Adicionales</label><div class="chips"><button class="chip" id="ex_num">Numerado suelto</button></div>`;
   }
+  else if(cat.t==='tarj'){
+    h+=sel('op_caras','Impresión',Object.keys(TARJ),keep?v('op_caras'):null);
+  }
   else if(cat.t==='talon'){
     const tSel=keep?v('op_tal'):null;
     h+=sel('op_tal','Tipo de talonario',[...Object.keys(TALON),'Personalizado…'],tSel);
@@ -695,7 +715,8 @@ function renderOpciones(keep){
   const usaRinde=!!cat.rinde;
   $('#rindeWrap').classList.toggle('hide',!usaRinde);
   if(usaRinde)$('#rindeWrap').querySelector('label').textContent=cat.t==='iman'?'Adhesivos por hoja A3':'Piezas por pliego';
-  $('#cantLbl').textContent={gf:'Metros',talon:'Cantidad de talonarios',mantel:'Millares',
+  $('#rindeCustom').classList.toggle('hide',!usaRinde||$('#rinde').value!=='otro');
+  $('#cantLbl').textContent={gf:'Metros',talon:'Cantidad de talonarios',tarj:'Cantidad de tarjetas',mantel:'Millares',
     lam:'Pliegos a laminar',terc:'Cantidad (informativa)',sobres:'Cantidad de sobres'}[cat.t]||
     (usaRinde?'Cantidad de piezas terminadas':'Cantidad');
   $('#refCard').classList.toggle('hide',cat.t!=='talon');
@@ -741,13 +762,13 @@ function render(){
   $$('#aviso1 [data-sw]').forEach(b=>b.addEventListener('click',()=>{
     $('#op_prov').value=b.dataset.sw;overrides={};renderOpciones(true);render()}));
 
-  if(r.cat.t==='talon'){
+  if(r.cat.t==='talon'||r.cat.t==='tarj'){
     const totalRef=r.costoRef,vta=r.ventaFija;
     let extra='';
     if(totalRef>0&&vta>0){const mm=vta/totalRef;
       extra=`<div class="note ${mm>=CFG.mult?'ok':''}" style="margin-top:12px">Tu precio es <b>×${mm.toFixed(2)}</b> sobre el costo de referencia. ${mm<CFG.mult?`A ×${CFG.mult} sería ${pesos(totalRef*CFG.mult)}.`:'Estás por encima del multiplicador habitual.'}</div>`}
-    $('#refs').innerHTML=r.refs.map(x=>`<div class="ref"><span class="t">${x.t}<div class="d">${pesos(x.u)} por talonario · hoy ${pesos(x.vAj)}</div></span><span class="v">${pesos(x.v)}</span></div>`).join('')+
-      Object.entries(MEGA).map(([t,o])=>`<div class="ref"><span class="t">${t}<div class="d">lo que cobra Mega, para comparar</div></span><span class="v">${pesos(o[1])}</span></div>`).join('')+extra;
+    $('#refs').innerHTML=r.refs.map(x=>`<div class="ref"><span class="t">${x.t}<div class="d">${pesos(x.u)} por ${r.cat.t==='tarj'?'tarjeta':'talonario'} · hoy ${pesos(x.vAj)}</div></span><span class="v">${pesos(x.v)}</span></div>`).join('')+
+      (r.cat.t!=='talon'?[]:Object.entries(MEGA)).map(([t,o])=>`<div class="ref"><span class="t">${t}<div class="d">lo que cobra Mega, para comparar</div></span><span class="v">${pesos(o[1])}</span></div>`).join('')+extra;
   }
   $('#tgAjuste').classList.toggle('on',CFG.ajuste);
   renderPrecio(r);
@@ -788,7 +809,7 @@ function renderPrecio(r){
 /* ===== CESTA / REGISTRO ===== */
 function snapshot(){
   const usaRinde=!$('#rindeWrap').classList.contains('hide');
-  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:usaRinde?nv('rinde',1):0,mult:multSel,
+  const o={cat:$('#cat').value,cant:nv('cant',1),rinde:usaRinde?($('#rinde').value==='otro'?'otro':nv('rinde',1)):0,rindeC:usaRinde?nv('rindeCustom',0):0,mult:multSel,
     multCustom:nv('multCustom',2),redondeo,overrides:JSON.parse(JSON.stringify(overrides)),campos:{}};
   $$('#opcWrap select,#opcWrap input,#campos input,#extrasWrap select').forEach(e=>{if(e.id)o.campos[e.id]=e.value});
   return o;
@@ -799,7 +820,7 @@ function restaurar(s){
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
   if(s.campos&&s.campos.op_prov)renderOpciones(true);
   Object.entries(s.campos||{}).forEach(([k,val])=>{const e=document.getElementById(k);if(e)e.value=val});
-  $('#cant').value=s.cant;if($('#rinde')&&s.rinde)$('#rinde').value=s.rinde;
+  $('#cant').value=s.cant;if($('#rinde')&&s.rinde){$('#rinde').value=s.rinde;if(s.rinde==='otro'&&s.rindeC)$('#rindeCustom').value=s.rindeC}
   multSel=s.mult||'habitual';if($('#multCustom'))$('#multCustom').value=s.multCustom||2;
   redondeo=s.redondeo??500;overrides=s.overrides||{};
   render();
@@ -959,7 +980,7 @@ function renderTablas(){
     Object.entries(BN).map(([f,B])=>`<table class="tbl" style="margin-bottom:14px"><tr><th>${f}</th>${B.txt.map(x=>`<th>${x}</th>`).join('')}</tr>`+
       `<tr><td>1/0</td>${B.p[0].map(x=>`<td>${pesos(x)}</td>`).join('')}</tr><tr><td>1/1</td>${B.p[1].map(x=>`<td>${pesos(x)}</td>`).join('')}</tr></table>`).join('')+'</div></details>';
   h+='<details><summary>Talonarios · Mega Imprenta (referencia)</summary><div class="scroll"><table class="tbl">'+
-    Object.entries(MEGA).map(([t,o])=>`<tr><td>${t}</td><td style="font-size:12px">${Object.entries(o).map(([k,p])=>`${k}: ${pesos(p)}`).join(' · ')}</td></tr>`).join('')+'</table></div></details>';
+    (r.cat.t!=='talon'?[]:Object.entries(MEGA)).map(([t,o])=>`<tr><td>${t}</td><td style="font-size:12px">${Object.entries(o).map(([k,p])=>`${k}: ${pesos(p)}`).join(' · ')}</td></tr>`).join('')+'</table></div></details>';
   const pend=[['Master de offset',CFG.master],['Arranque de máquina',CFG.arranque],['Metro de imán',CFG.iman],
     ['Laminado Super A3',CFG.lamA3],['Numerado suelto',CFG.numSuelto],['Recargo por color',CFG.recColor],
     ['Recargo por cortado',CFG.recCortado],['Base negro por millar',CFG.baseNegro],
@@ -1014,7 +1035,7 @@ function tab(n){
   window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 $('#cat').addEventListener('change',()=>{overrides={};renderOpciones(false);render()});
-['cant','multCustom','rinde'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
+['cant','multCustom','rinde','rindeCustom'].forEach(id=>{$('#'+id).addEventListener('input',render);$('#'+id).addEventListener('change',render)});
 $('#tgAjuste').addEventListener('click',async()=>{CFG.ajuste=!CFG.ajuste;await store.set('config',CFG);render()});
 $('#addItem').addEventListener('click',()=>{
   const r=calcular();if(!r.ok){toast('Falta completar el trabajo');return}
