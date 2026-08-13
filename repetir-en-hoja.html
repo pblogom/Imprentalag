@@ -149,6 +149,25 @@ details[open] summary:after{content:' ▴'}
         <input type="number" id="mrg" inputmode="numeric" value="4">
         <label class="fl">Sangrado del borde de afuera (mm)</label>
         <input type="number" id="sng" inputmode="numeric" value="5">
+        <label class="fl">Borde de afuera del pliego</label>
+        <select id="relleno">
+          <option value="espejo">Espejar el borde (lo normal)</option>
+          <option value="estira">Estirar el último punto</option>
+          <option value="color">Color liso</option>
+        </select>
+        <div id="wrapColor" class="hide">
+          <label class="fl">Tocá la imagen para tomar el color</label>
+          <canvas id="cuenta" style="width:100%;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+            <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
+            <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
+          </div>
+        </div>
+        <label class="fl">Borde blanco del archivo</label>
+        <select id="trim">
+          <option value="si">Sacárselo (recomendado)</option>
+          <option value="no">Dejarlo como vino</option>
+        </select>
         <label class="fl">Si la imagen no tiene la proporción justa</label>
         <select id="ajuste">
           <option value="cubrir">Recortar centrado (llena la pieza)</option>
@@ -172,7 +191,7 @@ details[open] summary:after{content:' ▴'}
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=s=>document.querySelector(s);
 const DPI=300, MARCA=3;               // largo de la marca de corte, en mm
-const S={src:null,nombre:'volante',plan:null};
+const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null};
 
 function vista(v){
   $('#vCarga').classList.toggle('hide',v!=='carga');
@@ -192,7 +211,7 @@ async function abrir(f){
   vista('busy');
   try{
     if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await abrirPdf(f); else await abrirImg(f);
-    vista('res'); calcular();
+    vista('res'); calcular(); if($('#relleno').value==='color') pintarCuenta();
   }catch(e){ console.error(e); alert('No se pudo abrir el archivo. Probá con un JPG o un PNG.'); vista('carga'); }
 }
 function abrirImg(f){return new Promise((ok,mal)=>{
@@ -200,7 +219,7 @@ function abrirImg(f){return new Promise((ok,mal)=>{
   r.onload=()=>{const im=new Image();im.onload=()=>{
     const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;
     const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);
-    S.src=c;ok();};im.onerror=mal;im.src=r.result;};
+    S.orig=c;S.detect=undefined;S.trim=undefined;ok();};im.onerror=mal;im.src=r.result;};
   r.onerror=mal;r.readAsDataURL(f);});}
 async function abrirPdf(f){
   $('#busyTxt').textContent='Procesando el PDF…';
@@ -209,7 +228,44 @@ async function abrirPdf(f){
   const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
   await page.render({canvasContext:x,viewport:vp}).promise;
-  S.src=c;
+  S.orig=c;S.detect=undefined;S.trim=undefined;
+}
+
+/* ------- recorte del borde blanco del archivo ------- */
+// Detecta márgenes casi blancos alrededor del arte. Trabaja sobre una copia
+// chica para que sea rápido en el celular, y nunca recorta más del 25% por lado.
+function detectarBlanco(c){
+  const M=700, k=Math.min(1,M/Math.max(c.width,c.height));
+  const w=Math.max(1,Math.round(c.width*k)), h=Math.max(1,Math.round(c.height*k));
+  const t=document.createElement('canvas');t.width=w;t.height=h;
+  t.getContext('2d').drawImage(c,0,0,w,h);
+  const d=t.getContext('2d').getImageData(0,0,w,h).data;
+  const blanco=(x,y)=>{const i=(y*w+x)*4;return d[i]>242&&d[i+1]>242&&d[i+2]>242};
+  const filaVacia=y=>{let n=0;for(let x=0;x<w;x++) if(!blanco(x,y)&&++n>w*0.004) return false;return true};
+  const colVacia=x=>{let n=0;for(let y=0;y<h;y++) if(!blanco(x,y)&&++n>h*0.004) return false;return true};
+  let t0=0,b0=h-1,l0=0,r0=w-1;
+  while(t0<h-1&&filaVacia(t0))t0++;
+  while(b0>t0&&filaVacia(b0))b0--;
+  while(l0<w-1&&colVacia(l0))l0++;
+  while(r0>l0&&colVacia(r0))r0--;
+  const tope=0.25;
+  if(t0>h*tope||l0>w*tope||(h-1-b0)>h*tope||(w-1-r0)>w*tope) return null;
+  if(t0===0&&l0===0&&b0===h-1&&r0===w-1) return null;
+  return {x:Math.floor(l0/k), y:Math.floor(t0/k),
+          w:Math.ceil((r0-l0+1)/k), h:Math.ceil((b0-t0+1)/k)};
+}
+function aplicarTrim(){
+  if($('#trim').value==='no'){S.src=S.orig;S.trim=null;return}
+  if(S.detect===undefined){
+    const r=detectarBlanco(S.orig);
+    if(r){
+      const c=document.createElement('canvas');c.width=r.w;c.height=r.h;
+      c.getContext('2d').drawImage(S.orig,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
+      S.recortado=c;S.detect=r;
+    } else S.detect=null;
+  }
+  S.trim=S.detect;
+  S.src=S.detect?S.recortado:S.orig;
 }
 
 /* ---------------- pieza ---------------- */
@@ -232,15 +288,15 @@ function armarPieza(wmm,hmm,girar,modo){
   x.restore();
   return c;
 }
-// Bandas espejadas para el sangrado del perímetro
-function banda(art,lado,bpx){
-  const W=art.width,H=art.height;
+// Bandas para el sangrado del perímetro: espejadas o estirando el último punto
+function banda(art,lado,bpx,modo){
+  const W=art.width,H=art.height,e=modo==='estira';
   const c=document.createElement('canvas');
   const cfg={
-    arriba:[0,0,W,bpx,W,bpx,0,1], abajo:[0,H-bpx,W,bpx,W,bpx,0,1],
-    izq:[0,0,bpx,H,bpx,H,1,0],    der:[W-bpx,0,bpx,H,bpx,H,1,0],
-    ai:[0,0,bpx,bpx,bpx,bpx,1,1], ad:[W-bpx,0,bpx,bpx,bpx,bpx,1,1],
-    bi:[0,H-bpx,bpx,bpx,bpx,bpx,1,1], bd:[W-bpx,H-bpx,bpx,bpx,bpx,bpx,1,1]
+    arriba:[0,0,W,e?1:bpx,W,bpx,0,e?0:1], abajo:[0,e?H-1:H-bpx,W,e?1:bpx,W,bpx,0,e?0:1],
+    izq:[0,0,e?1:bpx,H,bpx,H,e?0:1,0],    der:[e?W-1:W-bpx,0,e?1:bpx,H,bpx,H,e?0:1,0],
+    ai:[0,0,e?1:bpx,e?1:bpx,bpx,bpx,e?0:1,e?0:1], ad:[e?W-1:W-bpx,0,e?1:bpx,e?1:bpx,bpx,bpx,e?0:1,e?0:1],
+    bi:[0,e?H-1:H-bpx,e?1:bpx,e?1:bpx,bpx,bpx,e?0:1,e?0:1], bd:[e?W-1:W-bpx,e?H-1:H-bpx,e?1:bpx,e?1:bpx,bpx,bpx,e?0:1,e?0:1]
   }[lado];
   const [sx,sy,sw,sh,dw,dh,fx,fy]=cfg;
   c.width=dw;c.height=dh;
@@ -252,6 +308,9 @@ function banda(art,lado,bpx){
 
 /* ---------------- cálculo ---------------- */
 function calcular(){
+  if(!S.orig) return;
+  aplicarTrim();
+  const relleno=$('#relleno').value;
   const pwmm=num('#pw',100), phmm=num('#ph',150);
   const hs=$('#hoja').value;
   let hwmm,hhmm;
@@ -270,7 +329,7 @@ function calcular(){
     const n=cols*rows;
     if(!mejor||n>mejor.n) mejor={...o,cols,rows,n};
   });
-  S.plan={pwmm,phmm,hwmm,hhmm,mrg,sng,modo,...mejor,dispW,dispH};
+  S.plan={pwmm,phmm,hwmm,hhmm,mrg,sng,modo,relleno,color:$('#colorIn').value,...mejor,dispW,dispH};
 
   if(!mejor||mejor.n<1){
     $('#cant').textContent='0';
@@ -304,6 +363,7 @@ function calcular(){
     if(n>mejor.n){sug={m,n};break;}
   }
   if(sug) av+=`<div class="note"><b>Con ${sug.m} mm de margen entrarían ${sug.n}</b> en vez de ${mejor.n}. Fijate hasta dónde puede imprimir la máquina antes de bajarlo.<button onclick="document.querySelector('#mrg').value=${sug.m};calcular()">Probar con ${sug.m} mm →</button></div>`;
+  if(S.trim) av+=`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`;
   if(dpiReal2<150) av+=`<div class="note"><b>La imagen es chica.</b> A ${mejor.w}×${mejor.h} mm queda en ${Math.round(dpiReal2)} dpi. Va a salir borrosa. Pedile al cliente el archivo más grande.</div>`;
   if(modo==='cubrir'){
     const arte=(mejor.girar?S.src.height:S.src.width)/(mejor.girar?S.src.width:S.src.height);
@@ -325,9 +385,26 @@ function dibujar(){
   const bw=P.cols*P.w, bh=P.rows*P.h;
   const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
   const art=armarPieza(P.w,P.h,P.girar,P.modo);
-  // sangrado
-  x.fillStyle='#D9CFBB';
-  x.fillRect((x0-P.sng)*k,(y0-P.sng)*k,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
+  // sangrado del perímetro, tal cual va a salir
+  if(P.relleno==='color'){
+    x.fillStyle=P.color;
+    x.fillRect((x0-P.sng)*k,(y0-P.sng)*k,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
+  }else{
+    const bpx=mm2px(P.sng), B={};
+    ['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=banda(art,l,bpx,P.relleno));
+    for(let c=0;c<P.cols;c++){
+      x.drawImage(B.arriba,(x0+c*P.w)*k,(y0-P.sng)*k,P.w*k,P.sng*k);
+      x.drawImage(B.abajo ,(x0+c*P.w)*k,(y0+bh)*k   ,P.w*k,P.sng*k);
+    }
+    for(let r=0;r<P.rows;r++){
+      x.drawImage(B.izq,(x0-P.sng)*k,(y0+r*P.h)*k,P.sng*k,P.h*k);
+      x.drawImage(B.der,(x0+bw)*k   ,(y0+r*P.h)*k,P.sng*k,P.h*k);
+    }
+    x.drawImage(B.ai,(x0-P.sng)*k,(y0-P.sng)*k,P.sng*k,P.sng*k);
+    x.drawImage(B.ad,(x0+bw)*k   ,(y0-P.sng)*k,P.sng*k,P.sng*k);
+    x.drawImage(B.bi,(x0-P.sng)*k,(y0+bh)*k   ,P.sng*k,P.sng*k);
+    x.drawImage(B.bd,(x0+bw)*k   ,(y0+bh)*k   ,P.sng*k,P.sng*k);
+  }
   // piezas
   for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
     x.drawImage(art,(x0+c*P.w)*k,(y0+r*P.h)*k,P.w*k,P.h*k);
@@ -369,7 +446,12 @@ $('#btnPdf').onclick=()=>{
       const bpx=mm2px(P.sng);
       const jpg=c=>c.toDataURL('image/jpeg',0.92);
       // sangrado del perímetro (se dibuja primero, queda abajo)
-      const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(banda(art,l,bpx)));
+      if(P.relleno==='color'){
+        const h=P.color.replace('#','');
+        doc.setFillColor(parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16));
+        doc.rect(x0-P.sng,y0-P.sng,bw+2*P.sng,bh+2*P.sng,'F');
+      }else{
+      const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(banda(art,l,bpx,P.relleno)));
       for(let c=0;c<P.cols;c++){
         doc.addImage(B.arriba,'JPEG',x0+c*P.w,y0-P.sng,P.w,P.sng,'ba','FAST');
         doc.addImage(B.abajo ,'JPEG',x0+c*P.w,y0+bh   ,P.w,P.sng,'bb','FAST');
@@ -382,6 +464,7 @@ $('#btnPdf').onclick=()=>{
       doc.addImage(B.ad,'JPEG',x0+bw   ,y0-P.sng,P.sng,P.sng,'cb','FAST');
       doc.addImage(B.bi,'JPEG',x0-P.sng,y0+bh   ,P.sng,P.sng,'cc','FAST');
       doc.addImage(B.bd,'JPEG',x0+bw   ,y0+bh   ,P.sng,P.sng,'cd','FAST');
+      }
       // las piezas
       const A=jpg(art);
       for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
@@ -406,8 +489,37 @@ document.querySelectorAll('#chipsPieza .chip').forEach(ch=>ch.onclick=()=>{
 });
 $('#hoja').onchange=e=>{$('#wrapHoja').classList.toggle('hide',e.target.value!=='libre');calcular()};
 $('#ajuste').onchange=calcular; $('#rot').onchange=calcular;
+$('#trim').onchange=calcular;
+$('#colorIn').oninput=e=>{$('#sw').style.background=e.target.value;calcular()};
+$('#relleno').onchange=e=>{
+  const esColor=e.target.value==='color';
+  $('#wrapColor').classList.toggle('hide',!esColor);
+  if(esColor) pintarCuenta();
+  calcular();
+};
+// Cuentagotas: dibuja el arte chiquito y toma el color del punto que toque Claudia
+function pintarCuenta(){
+  if(!S.src) return;
+  const c=$('#cuenta'), anchoCSS=c.clientWidth||300;
+  const k=Math.min(1,anchoCSS/S.src.width);
+  c.width=Math.round(S.src.width*k); c.height=Math.round(S.src.height*k);
+  c.getContext('2d').drawImage(S.src,0,0,c.width,c.height);
+}
+function tomarColor(ev){
+  const c=$('#cuenta'), r=c.getBoundingClientRect();
+  const t=ev.touches?ev.touches[0]:ev;
+  const x=Math.floor((t.clientX-r.left)/r.width*c.width);
+  const y=Math.floor((t.clientY-r.top)/r.height*c.height);
+  if(x<0||y<0||x>=c.width||y>=c.height) return;
+  const d=c.getContext('2d').getImageData(x,y,1,1).data;
+  const hex='#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+  $('#colorIn').value=hex; $('#sw').style.background=hex;
+  calcular();
+}
+$('#cuenta').addEventListener('click',tomarColor);
+$('#cuenta').addEventListener('touchstart',e=>{e.preventDefault();tomarColor(e)},{passive:false});
 $('#file').onchange=e=>{if(e.target.files[0])abrir(e.target.files[0])};
-$('#btnOtra').onclick=()=>{S.src=null;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
+$('#btnOtra').onclick=()=>{S.src=null;S.orig=null;S.detect=undefined;S.trim=undefined;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
 window.addEventListener('resize',dibujar);
 </script>
 </body>
