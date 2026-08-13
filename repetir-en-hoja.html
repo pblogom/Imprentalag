@@ -145,7 +145,7 @@ details[open] summary:after{content:' ▴'}
       <details>
         <summary>Otras opciones</summary>
         <label class="fl">Margen de la hoja (mm)</label>
-        <input type="number" id="mrg" inputmode="numeric" value="10">
+        <input type="number" id="mrg" inputmode="numeric" value="4">
         <label class="fl">Sangrado del borde de afuera (mm)</label>
         <input type="number" id="sng" inputmode="numeric" value="5">
         <label class="fl">Si la imagen no tiene la proporción justa</label>
@@ -256,7 +256,7 @@ function calcular(){
   let hwmm,hhmm;
   if(hs==='libre'){hwmm=num('#hw',325);hhmm=num('#hh',475);}
   else{const p=hs.split(',');hwmm=+p[0];hhmm=+p[1];}
-  const mrg=num('#mrg',10), sng=num('#sng',5), modo=$('#ajuste').value, rotMod=$('#rot').value;
+  const mrg=num("#mrg",4), sng=num('#sng',5), modo=$('#ajuste').value, rotMod=$('#rot').value;
   // espacio libre para el bloque: hoja - margen - (sangrado + marca) de cada lado
   const afuera=sng+MARCA;
   const dispW=hwmm-2*mrg-2*afuera, dispH=hhmm-2*mrg-2*afuera;
