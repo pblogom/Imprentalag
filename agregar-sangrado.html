@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agregar sangrado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4EFE6;--paper-2:#FBF8F2;--ink:#191512;--ink-2:#5C534A;--ink-3:#8B8177;
+--line:#DFD5C4;--line-2:#EDE5D7;--magenta:#C8006B;--magenta-soft:#FBE7F1;
+--green:#256B4E;--green-soft:#E4F0EA;--amber:#8A5A00;--amber-soft:#FBF0D8;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:16px;line-height:1.45}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 60px}
+header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 16px}
+.hd-inner{max-width:640px;margin:0 auto}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin:0}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--magenta);display:inline-block;margin-bottom:2px}
+.brand small{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);margin-left:auto}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:14px}
+.card-t{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin:14px 0 6px}
+label.fl:first-child{margin-top:0}
+select,input[type=number]{width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;appearance:none}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%238B8177' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+input:focus,select:focus{outline:2px solid var(--magenta);outline-offset:-1px;border-color:var(--magenta)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:inherit;font-size:14px;font-weight:600;padding:9px 13px;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:999px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--paper-2);border-color:var(--ink)}
+.btn{width:100%;padding:15px;border-radius:12px;border:0;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;display:block}
+.btn-p{background:var(--magenta);color:#fff}
+.btn-s{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{margin-top:0}
+.note{background:var(--amber-soft);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13.5px;color:#4A3200;margin-top:12px}
+.note.ok{background:var(--green-soft);border-left-color:var(--green);color:#12402D}
+.note b{font-weight:700}
+details{border-top:1px solid var(--line-2);padding:12px 0;margin-top:4px}
+details:first-of-type{border-top:0}
+summary{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:' ▾';color:var(--magenta)}
+details[open] summary:after{content:' ▴'}
+
+/* Zona de carga */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--paper-2);padding:44px 20px;text-align:center;cursor:pointer;margin-top:14px}
+.drop.hot{border-color:var(--magenta);background:var(--magenta-soft)}
+.drop .ic{font-size:34px;line-height:1}
+.drop .t1{font-size:17px;font-weight:700;margin-top:10px}
+.drop .t2{font-size:13.5px;color:var(--ink-3);margin-top:4px}
+#file{display:none}
+
+/* Vista previa */
+.stage{background:
+  linear-gradient(45deg,#E8E1D4 25%,transparent 25%,transparent 75%,#E8E1D4 75%),
+  linear-gradient(45deg,#E8E1D4 25%,transparent 25%,transparent 75%,#E8E1D4 75%);
+  background-size:16px 16px;background-position:0 0,8px 8px;background-color:#F7F3EC;
+  border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;align-items:center;min-height:150px}
+#prev{max-width:100%;height:auto;display:block;box-shadow:0 2px 14px rgba(25,21,18,.16)}
+.leg{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
+.leg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--magenta);vertical-align:middle;margin-right:5px}
+.leg b{display:inline-block;width:16px;height:10px;background:var(--magenta-soft);border:1px solid var(--magenta);vertical-align:middle;margin-right:5px}
+.dl{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--line-2);padding:9px 0;font-size:14px}
+.dl .k{flex:1;color:var(--ink-2)}
+.dl .v{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
+.busy{text-align:center;color:var(--ink-3);padding:30px;font-size:15px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><div class="hd-inner"><div class="brand">
+  <span class="dot"></span><h1>Agregar sangrado</h1><small>IMPRENTA</small>
+</div></div></header>
+
+<div class="wrap">
+
+  <!-- PASO 1 -->
+  <div id="vCarga">
+    <div class="drop" id="drop">
+      <div class="ic">🖼️</div>
+      <div class="t1">Elegí la imagen</div>
+      <div class="t2">JPG, PNG o PDF · tocá acá o arrastrá el archivo</div>
+    </div>
+    <input type="file" id="file" accept="image/*,application/pdf">
+    <div class="note">
+      Le agrega <b>5 mm de margen para cortar</b> de cada lado, espejando el borde.
+      Sirve para cuando el diseño viene justo y no se puede guillotinar sin comerse algo.
+    </div>
+  </div>
+
+  <!-- CARGANDO -->
+  <div id="vBusy" class="hide"><div class="card"><div class="busy" id="busyTxt">Abriendo el archivo…</div></div></div>
+
+  <!-- PASO 2 -->
+  <div id="vRes" class="hide">
+    <div class="card">
+      <p class="card-t">Así queda</p>
+      <div class="stage"><canvas id="prev"></canvas></div>
+      <div class="leg"><span><i></i>Línea de corte</span><span><b></b>Margen agregado</span></div>
+    </div>
+
+    <div class="card">
+      <p class="card-t">La pieza</p>
+      <div id="datos"></div>
+    </div>
+
+    <div id="avisos"></div>
+
+    <button class="btn btn-p" id="btnPdf">Descargar el PDF</button>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-s" id="btnJpg">Descargar JPG</button>
+      <button class="btn btn-s" id="btnOtra">Hacer otra</button>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Otras opciones</summary>
+        <label class="fl">Margen de cada lado</label>
+        <div class="chips" id="chipsMm">
+          <button class="chip" data-mm="3">3 mm</button>
+          <button class="chip on" data-mm="5">5 mm</button>
+          <button class="chip" data-mm="10">10 mm</button>
+        </div>
+        <label class="fl">Cómo rellena el margen</label>
+        <select id="metodo">
+          <option value="espejo">Espejando el borde (lo normal)</option>
+          <option value="estira">Estirando el último punto</option>
+          <option value="blanco">Con blanco liso</option>
+        </select>
+        <label class="fl">Tamaño real de la pieza</label>
+        <select id="dpi">
+          <option value="300">La imagen está a 300 dpi (lo habitual)</option>
+          <option value="150">La imagen está a 150 dpi</option>
+          <option value="real">Yo le digo cuánto mide de ancho</option>
+        </select>
+        <div id="wrapReal" class="hide">
+          <label class="fl">Ancho real de la pieza, en centímetros</label>
+          <input type="number" id="anchoCm" step="0.1" inputmode="decimal" placeholder="9">
+        </div>
+      </details>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const $=s=>document.querySelector(s);
+const S={src:null,w:0,h:0,nombre:'archivo',esPdf:false,pdfWmm:0,pdfHmm:0,out:null};
+const CFG={mm:5,metodo:'espejo',dpiMode:'300',anchoCm:0};
+
+function vista(v){
+  $('#vCarga').classList.toggle('hide',v!=='carga');
+  $('#vBusy').classList.toggle('hide',v!=='busy');
+  $('#vRes').classList.toggle('hide',v!=='res');
+}
+
+/* ---------- Carga ---------- */
+$('#drop').onclick=()=>$('#file').click();
+['dragenter','dragover'].forEach(e=>$('#drop').addEventListener(e,ev=>{ev.preventDefault();$('#drop').classList.add('hot')}));
+['dragleave','drop'].forEach(e=>$('#drop').addEventListener(e,ev=>{ev.preventDefault();$('#drop').classList.remove('hot')}));
+$('#drop').addEventListener('drop',ev=>{if(ev.dataTransfer.files[0])abrir(ev.dataTransfer.files[0])});
+$('#file').onchange=e=>{if(e.target.files[0])abrir(e.target.files[0])};
+
+async function abrir(f){
+  S.nombre=(f.name||'archivo').replace(/\.[^.]+$/,'');
+  vista('busy');
+  try{
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await abrirPdf(f);
+    else await abrirImg(f);
+    vista('res');
+    procesar();
+  }catch(err){
+    console.error(err);
+    alert('No se pudo abrir el archivo. Probá con un JPG o un PNG.');
+    vista('carga');
+  }
+}
+
+function abrirImg(f){
+  return new Promise((ok,mal)=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      const im=new Image();
+      im.onload=()=>{
+        const c=document.createElement('canvas');
+        c.width=im.naturalWidth;c.height=im.naturalHeight;
+        const x=c.getContext('2d');
+        x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+        x.drawImage(im,0,0);
+        S.src=c;S.w=c.width;S.h=c.height;S.esPdf=false;
+        ok();
+      };
+      im.onerror=mal;im.src=r.result;
+    };
+    r.onerror=mal;r.readAsDataURL(f);
+  });
+}
+
+async function abrirPdf(f){
+  $('#busyTxt').textContent='Procesando el PDF…';
+  const buf=await f.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const page=await pdf.getPage(1);
+  const v1=page.getViewport({scale:1});
+  S.pdfWmm=v1.width*25.4/72; S.pdfHmm=v1.height*25.4/72;
+  const vp=page.getViewport({scale:300/72});
+  const c=document.createElement('canvas');
+  c.width=Math.round(vp.width);c.height=Math.round(vp.height);
+  const x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  await page.render({canvasContext:x,viewport:vp}).promise;
+  S.src=c;S.w=c.width;S.h=c.height;S.esPdf=true;
+}
+
+/* ---------- Cálculo ---------- */
+function dpiActual(){
+  if(S.esPdf) return 300;
+  if(CFG.dpiMode==='real'&&CFG.anchoCm>0) return S.w/(CFG.anchoCm/2.54);
+  return CFG.dpiMode==='150'?150:300;
+}
+function medidas(){
+  const d=dpiActual();
+  if(S.esPdf) return {wmm:S.pdfWmm,hmm:S.pdfHmm,dpi:300};
+  return {wmm:S.w/d*25.4,hmm:S.h/d*25.4,dpi:d};
+}
+
+function procesar(){
+  const d=dpiActual();
+  let b=Math.round(CFG.mm*d/25.4);
+  b=Math.max(1,Math.min(b,Math.floor(S.w/2)-1,Math.floor(S.h/2)-1));
+  const w=S.w,h=S.h;
+  const c=document.createElement('canvas');
+  c.width=w+2*b;c.height=h+2*b;
+  const x=c.getContext('2d');
+  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+
+  if(CFG.metodo!=='blanco'){
+    const esp=CFG.metodo==='espejo';
+    const put=(sx,sy,sw,sh,dx,dy,dw,dh,fx,fy)=>{
+      x.save();
+      x.translate(dx+(fx?dw:0),dy+(fy?dh:0));
+      x.scale(fx?-1:1,fy?-1:1);
+      x.drawImage(S.src,sx,sy,sw,sh,0,0,dw,dh);
+      x.restore();
+    };
+    if(esp){
+      put(0,0,b,h, 0,b,b,h, 1,0);            // izquierda
+      put(w-b,0,b,h, w+b,b,b,h, 1,0);        // derecha
+      put(0,0,w,b, b,0,w,b, 0,1);            // arriba
+      put(0,h-b,w,b, b,h+b,w,b, 0,1);        // abajo
+      put(0,0,b,b, 0,0,b,b, 1,1);            // esquinas
+      put(w-b,0,b,b, w+b,0,b,b, 1,1);
+      put(0,h-b,b,b, 0,h+b,b,b, 1,1);
+      put(w-b,h-b,b,b, w+b,h+b,b,b, 1,1);
+    }else{
+      put(0,0,1,h, 0,b,b,h, 0,0);
+      put(w-1,0,1,h, w+b,b,b,h, 0,0);
+      put(0,0,w,1, b,0,w,b, 0,0);
+      put(0,h-1,w,1, b,h+b,w,b, 0,0);
+      put(0,0,1,1, 0,0,b,b, 0,0);
+      put(w-1,0,1,1, w+b,0,b,b, 0,0);
+      put(0,h-1,1,1, 0,h+b,b,b, 0,0);
+      put(w-1,h-1,1,1, w+b,h+b,b,b, 0,0);
+    }
+  }
+  x.drawImage(S.src,b,b);
+  S.out={canvas:c,b:b};
+  pintarPrev();
+  pintarDatos();
+}
+
+function pintarPrev(){
+  const {canvas:c,b}=S.out;
+  const st=document.querySelector('.stage').clientWidth||320;
+  const maxW=Math.max(200,Math.min(560,st-30));
+  const k=Math.min(1,maxW/c.width);
+  const p=$('#prev');
+  p.width=Math.round(c.width*k);p.height=Math.round(c.height*k);
+  const x=p.getContext('2d');
+  x.imageSmoothingQuality='high';
+  x.drawImage(c,0,0,p.width,p.height);
+  const bb=b*k;
+  x.save();
+  x.fillStyle='rgba(200,0,107,.14)';
+  x.fillRect(0,0,p.width,bb);
+  x.fillRect(0,p.height-bb,p.width,bb);
+  x.fillRect(0,bb,bb,p.height-2*bb);
+  x.fillRect(p.width-bb,bb,bb,p.height-2*bb);
+  x.setLineDash([5,4]);x.lineWidth=1.4;x.strokeStyle='#C8006B';
+  x.strokeRect(bb,bb,p.width-2*bb,p.height-2*bb);
+  x.restore();
+}
+
+function pintarDatos(){
+  const m=medidas(),b=S.out.b;
+  const cm=v=>(v/10).toFixed(1).replace('.',',');
+  const filas=[
+    ['Medida original',`${cm(m.wmm)} × ${cm(m.hmm)} cm`],
+    ['Con el sangrado',`${cm(m.wmm+2*CFG.mm)} × ${cm(m.hmm+2*CFG.mm)} cm`],
+    ['Margen agregado',`${CFG.mm} mm por lado (${b} px)`],
+    ['Resolución',`${Math.round(m.dpi)} dpi`]
+  ];
+  $('#datos').innerHTML=filas.map(f=>`<div class="dl"><span class="k">${f[0]}</span><span class="v">${f[1]}</span></div>`).join('');
+
+  let av='';
+  if(m.dpi<150) av+=`<div class="note"><b>Ojo con la calidad.</b> A esa medida la imagen queda en ${Math.round(m.dpi)} dpi. Para impresión conviene 300. Va a salir con los bordes blandos.</div>`;
+  if(CFG.metodo==='espejo') av+=`<div class="note">Mirá el resultado antes de mandarlo. Si hay <b>texto, un logo o una cara pegada al borde</b>, el espejado lo va a repetir y se nota.</div>`;
+  $('#avisos').innerHTML=av;
+}
+
+/* ---------- Opciones ---------- */
+document.querySelectorAll('#chipsMm .chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('#chipsMm .chip').forEach(o=>o.classList.remove('on'));
+  ch.classList.add('on');CFG.mm=+ch.dataset.mm;procesar();
+});
+$('#metodo').onchange=e=>{CFG.metodo=e.target.value;procesar()};
+$('#dpi').onchange=e=>{
+  CFG.dpiMode=e.target.value;
+  $('#wrapReal').classList.toggle('hide',e.target.value!=='real');
+  procesar();
+};
+$('#anchoCm').oninput=e=>{CFG.anchoCm=parseFloat(e.target.value)||0;procesar()};
+window.addEventListener('resize',()=>{if(S.out)pintarPrev()});
+
+/* ---------- Salida ---------- */
+function bajar(url,nombre){
+  const a=document.createElement('a');a.href=url;a.download=nombre;
+  document.body.appendChild(a);a.click();a.remove();
+}
+
+$('#btnJpg').onclick=()=>{
+  S.out.canvas.toBlob(bl=>{
+    const u=URL.createObjectURL(bl);
+    bajar(u,S.nombre+'-sangrado.jpg');
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  },'image/jpeg',0.95);
+};
+
+$('#btnPdf').onclick=()=>{
+  const m=medidas();
+  const pw=m.wmm+2*CFG.mm, ph=m.hmm+2*CFG.mm;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:[pw,ph],orientation:pw>ph?'landscape':'portrait',compress:true});
+  const data=S.out.canvas.toDataURL('image/jpeg',0.95);
+  doc.addImage(data,'JPEG',0,0,pw,ph,undefined,'SLOW');
+  doc.save(S.nombre+'-sangrado.pdf');
+};
+
+$('#btnOtra').onclick=()=>{
+  S.src=null;S.out=null;$('#file').value='';
+  vista('carga');window.scrollTo(0,0);
+};
+</script>
+</body>
+</html>
