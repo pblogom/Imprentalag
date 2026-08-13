@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Repetir en la hoja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4EFE6;--paper-2:#FBF8F2;--ink:#191512;--ink-2:#5C534A;--ink-3:#8B8177;
+--line:#DFD5C4;--line-2:#EDE5D7;--magenta:#C8006B;--magenta-soft:#FBE7F1;
+--green:#256B4E;--green-soft:#E4F0EA;--amber:#8A5A00;--amber-soft:#FBF0D8;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:16px;line-height:1.45}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 70px}
+header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 16px}
+.hd-inner{max-width:640px;margin:0 auto;display:flex;align-items:baseline;gap:8px}
+.hd-inner h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin:0}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--magenta);display:inline-block}
+.hd-inner small{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);margin-left:auto}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:14px}
+.card-t{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px}
+.step{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.step-n{width:20px;height:20px;border-radius:50%;background:var(--magenta);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.step-t{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin:14px 0 6px}
+label.fl:first-child{margin-top:0}
+select,input[type=number]{width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;appearance:none}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%238B8177' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+input:focus,select:focus{outline:2px solid var(--magenta);outline-offset:-1px;border-color:var(--magenta)}
+.par{display:flex;gap:8px;align-items:flex-end}
+.par>div{flex:1}
+.par .x{padding-bottom:13px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:inherit;font-size:14px;font-weight:600;padding:9px 13px;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:999px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--paper-2);border-color:var(--ink)}
+.btn{width:100%;padding:15px;border-radius:12px;border:0;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;display:block}
+.btn-p{background:var(--magenta);color:#fff}
+.btn-s{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{margin-top:0}
+.note{background:var(--amber-soft);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13.5px;color:#4A3200;margin-top:12px}
+.note.ok{background:var(--green-soft);border-left-color:var(--green);color:#12402D}
+.note b{font-weight:700}
+details{border-top:1px solid var(--line-2);padding:12px 0;margin-top:4px}
+summary{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:' ▾';color:var(--magenta)}
+details[open] summary:after{content:' ▴'}
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--paper-2);padding:40px 20px;text-align:center;cursor:pointer;margin-top:14px}
+.drop.hot{border-color:var(--magenta);background:var(--magenta-soft)}
+.drop .ic{font-size:34px;line-height:1}
+.drop .t1{font-size:17px;font-weight:700;margin-top:10px}
+.drop .t2{font-size:13.5px;color:var(--ink-3);margin-top:4px}
+#file{display:none}
+.stage{background:#EDE7DB;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;min-height:140px}
+#prev{max-width:100%;height:auto;display:block;box-shadow:0 2px 16px rgba(25,21,18,.18)}
+.leg{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
+.leg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--magenta);vertical-align:middle;margin-right:5px}
+.leg b{display:inline-block;width:16px;height:10px;background:#D9CFBB;border:1px solid var(--ink-3);vertical-align:middle;margin-right:5px}
+.rend{background:var(--ink);color:var(--paper-2);border-radius:var(--r);padding:18px;margin-top:14px}
+.rend .lab{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.6}
+.rend .big{font-family:'IBM Plex Mono',monospace;font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin:4px 0 2px}
+.rend .sub{font-size:13px;opacity:.75}
+.dl{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--line-2);padding:9px 0;font-size:14px}
+.dl:first-child{border-top:0}
+.dl .k{flex:1;color:var(--ink-2)}
+.dl .v{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
+.busy{text-align:center;color:var(--ink-3);padding:30px;font-size:15px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><div class="hd-inner"><span class="dot"></span><h1>Repetir en la hoja</h1><small>IMPRENTA</small></div></header>
+<div class="wrap">
+
+  <!-- 1. ARCHIVO -->
+  <div id="vCarga">
+    <div class="drop" id="drop">
+      <div class="ic">📄</div>
+      <div class="t1">Elegí el volante</div>
+      <div class="t2">JPG, PNG o PDF · tocá acá o arrastrá el archivo</div>
+    </div>
+    <div class="note">Subí el diseño de <b>un</b> volante. La herramienta lo repite en la hoja, le agrega el sangrado y le pone las marcas de corte donde van.</div>
+  </div>
+
+  <div id="vBusy" class="hide"><div class="card"><div class="busy" id="busyTxt">Abriendo el archivo…</div></div></div>
+
+  <!-- 2. CONFIG + RESULTADO -->
+  <div id="vRes" class="hide">
+
+    <div class="card">
+      <div class="step"><span class="step-n">1</span><span class="step-t">Medida del volante</span></div>
+      <div class="chips" id="chipsPieza">
+        <button class="chip" data-w="90" data-h="50">Tarjeta 90×50</button>
+        <button class="chip on" data-w="100" data-h="150">Volante 100×150</button>
+        <button class="chip" data-w="105" data-h="148">A6</button>
+        <button class="chip" data-w="148" data-h="210">A5</button>
+      </div>
+      <div class="par" style="margin-top:12px">
+        <div><label class="fl">Ancho (mm)</label><input type="number" id="pw" inputmode="numeric" value="100"></div>
+        <div class="x">×</div>
+        <div><label class="fl">Alto (mm)</label><input type="number" id="ph" inputmode="numeric" value="150"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="step-n">2</span><span class="step-t">Hoja</span></div>
+      <select id="hoja">
+        <option value="325,475">32,5 × 47,5 cm — pliego color</option>
+        <option value="220,340">22 × 34 cm — pliego chico</option>
+        <option value="210,297">A4 — 21 × 29,7 cm</option>
+        <option value="297,420">A3 — 29,7 × 42 cm</option>
+        <option value="148,210">A5 — 14,8 × 21 cm</option>
+        <option value="libre">Otra medida…</option>
+      </select>
+      <div id="wrapHoja" class="hide par" style="margin-top:12px">
+        <div><label class="fl">Ancho hoja (mm)</label><input type="number" id="hw" inputmode="numeric" value="325"></div>
+        <div class="x">×</div>
+        <div><label class="fl">Alto hoja (mm)</label><input type="number" id="hh" inputmode="numeric" value="475"></div>
+      </div>
+    </div>
+
+    <div class="rend">
+      <div class="lab">Entran por hoja</div>
+      <div class="big" id="cant">—</div>
+      <div class="sub" id="cantSub">—</div>
+    </div>
+
+    <div class="card">
+      <p class="card-t">Así queda la hoja</p>
+      <div class="stage"><canvas id="prev"></canvas></div>
+      <div class="leg"><span><i></i>Por acá corta Mingo</span><span><b></b>Sangrado</span></div>
+    </div>
+
+    <div id="avisos"></div>
+
+    <button class="btn btn-p" id="btnPdf">Descargar el PDF para imprimir</button>
+    <button class="btn btn-s" id="btnOtra">Empezar de nuevo</button>
+
+    <div class="card">
+      <details>
+        <summary>Otras opciones</summary>
+        <label class="fl">Margen de la hoja (mm)</label>
+        <input type="number" id="mrg" inputmode="numeric" value="10">
+        <label class="fl">Sangrado del borde de afuera (mm)</label>
+        <input type="number" id="sng" inputmode="numeric" value="5">
+        <label class="fl">Si la imagen no tiene la proporción justa</label>
+        <select id="ajuste">
+          <option value="cubrir">Recortar centrado (llena la pieza)</option>
+          <option value="entrar">Entrar entera (deja blanco a los costados)</option>
+        </select>
+        <label class="fl">Orientación</label>
+        <select id="rot">
+          <option value="auto">La que entre más copias</option>
+          <option value="no">Dejar como está</option>
+          <option value="si">Girada 90°</option>
+        </select>
+        <div id="datos" style="margin-top:14px"></div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $=s=>document.querySelector(s);
+const DPI=300, MARCA=3;               // largo de la marca de corte, en mm
+const S={src:null,nombre:'volante',plan:null};
+
+function vista(v){
+  $('#vCarga').classList.toggle('hide',v!=='carga');
+  $('#vBusy').classList.toggle('hide',v!=='busy');
+  $('#vRes').classList.toggle('hide',v!=='res');
+}
+const num=(id,def)=>{const v=parseFloat($(id).value);return isNaN(v)||v<=0?def:v};
+
+/* ---------------- carga ---------------- */
+$('#drop').onclick=()=>$('#file').click();
+['dragenter','dragover'].forEach(e=>$('#drop').addEventListener(e,ev=>{ev.preventDefault();$('#drop').classList.add('hot')}));
+['dragleave','drop'].forEach(e=>$('#drop').addEventListener(e,ev=>{ev.preventDefault();$('#drop').classList.remove('hot')}));
+$('#drop').addEventListener('drop',ev=>{if(ev.dataTransfer.files[0])abrir(ev.dataTransfer.files[0])});
+
+async function abrir(f){
+  S.nombre=(f.name||'volante').replace(/\.[^.]+$/,'');
+  vista('busy');
+  try{
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await abrirPdf(f); else await abrirImg(f);
+    vista('res'); calcular();
+  }catch(e){ console.error(e); alert('No se pudo abrir el archivo. Probá con un JPG o un PNG.'); vista('carga'); }
+}
+function abrirImg(f){return new Promise((ok,mal)=>{
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{
+    const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);
+    S.src=c;ok();};im.onerror=mal;im.src=r.result;};
+  r.onerror=mal;r.readAsDataURL(f);});}
+async function abrirPdf(f){
+  $('#busyTxt').textContent='Procesando el PDF…';
+  const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+  const page=await pdf.getPage(1), vp=page.getViewport({scale:DPI/72});
+  const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  await page.render({canvasContext:x,viewport:vp}).promise;
+  S.src=c;
+}
+
+/* ---------------- pieza ---------------- */
+const mm2px=mm=>Math.max(1,Math.round(mm*DPI/25.4));
+
+// Dibuja el arte dentro de una pieza de wmm x hmm, recortando o entrando entero
+function armarPieza(wmm,hmm,girar,modo){
+  const W=mm2px(wmm),H=mm2px(hmm);
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);
+  const sw=girar?S.src.height:S.src.width, sh=girar?S.src.width:S.src.height;
+  const k=modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
+  const dw=sw*k, dh=sh*k;
+  x.save();
+  x.translate(W/2,H/2);
+  if(girar) x.rotate(-Math.PI/2);
+  x.drawImage(S.src, girar?-dh/2:-dw/2, girar?-dw/2:-dh/2, girar?dh:dw, girar?dw:dh);
+  x.restore();
+  return c;
+}
+// Bandas espejadas para el sangrado del perímetro
+function banda(art,lado,bpx){
+  const W=art.width,H=art.height;
+  const c=document.createElement('canvas');
+  const cfg={
+    arriba:[0,0,W,bpx,W,bpx,0,1], abajo:[0,H-bpx,W,bpx,W,bpx,0,1],
+    izq:[0,0,bpx,H,bpx,H,1,0],    der:[W-bpx,0,bpx,H,bpx,H,1,0],
+    ai:[0,0,bpx,bpx,bpx,bpx,1,1], ad:[W-bpx,0,bpx,bpx,bpx,bpx,1,1],
+    bi:[0,H-bpx,bpx,bpx,bpx,bpx,1,1], bd:[W-bpx,H-bpx,bpx,bpx,bpx,bpx,1,1]
+  }[lado];
+  const [sx,sy,sw,sh,dw,dh,fx,fy]=cfg;
+  c.width=dw;c.height=dh;
+  const x=c.getContext('2d');
+  x.translate(fx?dw:0, fy?dh:0); x.scale(fx?-1:1, fy?-1:1);
+  x.drawImage(art,sx,sy,sw,sh,0,0,dw,dh);
+  return c;
+}
+
+/* ---------------- cálculo ---------------- */
+function calcular(){
+  const pwmm=num('#pw',100), phmm=num('#ph',150);
+  const hs=$('#hoja').value;
+  let hwmm,hhmm;
+  if(hs==='libre'){hwmm=num('#hw',325);hhmm=num('#hh',475);}
+  else{const p=hs.split(',');hwmm=+p[0];hhmm=+p[1];}
+  const mrg=num('#mrg',10), sng=num('#sng',5), modo=$('#ajuste').value, rotMod=$('#rot').value;
+  // espacio libre para el bloque: hoja - margen - (sangrado + marca) de cada lado
+  const afuera=sng+MARCA;
+  const dispW=hwmm-2*mrg-2*afuera, dispH=hhmm-2*mrg-2*afuera;
+  const opciones=[];
+  if(rotMod!=='si') opciones.push({girar:false,w:pwmm,h:phmm});
+  if(rotMod!=='no') opciones.push({girar:true,w:phmm,h:pwmm});
+  let mejor=null;
+  opciones.forEach(o=>{
+    const cols=Math.floor(dispW/o.w), rows=Math.floor(dispH/o.h);
+    const n=cols*rows;
+    if(!mejor||n>mejor.n) mejor={...o,cols,rows,n};
+  });
+  S.plan={pwmm,phmm,hwmm,hhmm,mrg,sng,modo,...mejor,dispW,dispH};
+
+  if(!mejor||mejor.n<1){
+    $('#cant').textContent='0';
+    $('#cantSub').textContent='No entra ninguno con esta hoja';
+    $('#btnPdf').disabled=true;
+    $('#avisos').innerHTML=`<div class="note"><b>No entra.</b> El volante de ${pwmm}×${phmm} mm no cabe en una hoja de ${hwmm}×${hhmm} mm dejando ${mrg} mm de margen. Probá con una hoja más grande o achicá el volante.</div>`;
+    const p=$('#prev');p.width=10;p.height=10;
+    return;
+  }
+  $('#btnPdf').disabled=false;
+  const bw=mejor.cols*mejor.w, bh=mejor.rows*mejor.h;
+  $('#cant').textContent=mejor.n;
+  $('#cantSub').textContent=`${mejor.cols} × ${mejor.rows}${mejor.girar?' · girado 90°':''} · sobra ${(dispW-bw).toFixed(0)} mm de ancho y ${(dispH-bh).toFixed(0)} mm de alto`;
+
+  const dpiReal=Math.min(S.src.width/(mejor.w/25.4), S.src.height/(mejor.h/25.4));
+  const dpiReal2=mejor.girar?Math.min(S.src.height/(mejor.w/25.4),S.src.width/(mejor.h/25.4)):dpiReal;
+  $('#datos').innerHTML=[
+    ['Bloque impreso',`${bw} × ${bh} mm`],
+    ['Con sangrado',`${bw+2*sng} × ${bh+2*sng} mm`],
+    ['Archivo original',`${S.src.width} × ${S.src.height} px`],
+    ['Resolución final',`${Math.round(dpiReal2)} dpi`]
+  ].map(f=>`<div class="dl"><span class="k">${f[0]}</span><span class="v">${f[1]}</span></div>`).join('');
+
+  let av='';
+  // ¿bajando el margen entran más? (piso: 3 mm)
+  let sug=null;
+  for(let m=Math.floor(mrg)-1;m>=3;m--){
+    const dW=hwmm-2*m-2*afuera, dH=hhmm-2*m-2*afuera;
+    let n=0;
+    opciones.forEach(o=>{n=Math.max(n,Math.floor(dW/o.w)*Math.floor(dH/o.h))});
+    if(n>mejor.n){sug={m,n};break;}
+  }
+  if(sug) av+=`<div class="note"><b>Con ${sug.m} mm de margen entrarían ${sug.n}</b> en vez de ${mejor.n}. Fijate hasta dónde puede imprimir la máquina antes de bajarlo.<button onclick="document.querySelector('#mrg').value=${sug.m};calcular()">Probar con ${sug.m} mm →</button></div>`;
+  if(dpiReal2<150) av+=`<div class="note"><b>La imagen es chica.</b> A ${mejor.w}×${mejor.h} mm queda en ${Math.round(dpiReal2)} dpi. Va a salir borrosa. Pedile al cliente el archivo más grande.</div>`;
+  if(modo==='cubrir'){
+    const arte=(mejor.girar?S.src.height:S.src.width)/(mejor.girar?S.src.width:S.src.height);
+    if(Math.abs(arte-mejor.w/mejor.h)>0.06) av+=`<div class="note">La proporción del archivo no coincide con ${mejor.w}×${mejor.h} mm, así que se recorta un poco por los costados. Mirá la vista previa antes de mandar.</div>`;
+  }
+  $('#avisos').innerHTML=av;
+  dibujar();
+}
+
+/* ---------------- vista previa ---------------- */
+function dibujar(){
+  const P=S.plan; if(!P||P.n<1) return;
+  const st=document.querySelector('.stage').clientWidth||320;
+  const maxW=Math.max(200,Math.min(520,st-30));
+  const k=Math.min(maxW/P.hwmm, 620/P.hhmm);
+  const p=$('#prev'); p.width=Math.round(P.hwmm*k); p.height=Math.round(P.hhmm*k);
+  const x=p.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,p.width,p.height);
+  const bw=P.cols*P.w, bh=P.rows*P.h;
+  const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
+  const art=armarPieza(P.w,P.h,P.girar,P.modo);
+  // sangrado
+  x.fillStyle='#D9CFBB';
+  x.fillRect((x0-P.sng)*k,(y0-P.sng)*k,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
+  // piezas
+  for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
+    x.drawImage(art,(x0+c*P.w)*k,(y0+r*P.h)*k,P.w*k,P.h*k);
+  // líneas de corte
+  x.save();x.setLineDash([4,3]);x.lineWidth=1;x.strokeStyle='#C8006B';
+  for(let c=0;c<=P.cols;c++){x.beginPath();x.moveTo((x0+c*P.w)*k,(y0-P.sng)*k);x.lineTo((x0+c*P.w)*k,(y0+bh+P.sng)*k);x.stroke();}
+  for(let r=0;r<=P.rows;r++){x.beginPath();x.moveTo((x0-P.sng)*k,(y0+r*P.h)*k);x.lineTo((x0+bw+P.sng)*k,(y0+r*P.h)*k);x.stroke();}
+  x.restore();
+  // marcas
+  x.lineWidth=1;x.strokeStyle='#191512';
+  marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{x.beginPath();x.moveTo(a*k,b*k);x.lineTo(c2*k,d*k);x.stroke();});
+}
+
+// Genera las marcas de corte: arrancan a `sng` de la línea de corte y salen hacia afuera
+function marcas(P,x0,y0,bw,bh,linea){
+  for(let c=0;c<=P.cols;c++){
+    const xx=x0+c*P.w;
+    linea(xx, y0-P.sng, xx, y0-P.sng-MARCA);
+    linea(xx, y0+bh+P.sng, xx, y0+bh+P.sng+MARCA);
+  }
+  for(let r=0;r<=P.rows;r++){
+    const yy=y0+r*P.h;
+    linea(x0-P.sng, yy, x0-P.sng-MARCA, yy);
+    linea(x0+bw+P.sng, yy, x0+bw+P.sng+MARCA, yy);
+  }
+}
+
+/* ---------------- PDF ---------------- */
+$('#btnPdf').onclick=()=>{
+  const P=S.plan; if(!P||P.n<1) return;
+  $('#btnPdf').disabled=true; $('#btnPdf').textContent='Armando el PDF…';
+  setTimeout(()=>{
+    try{
+      const {jsPDF}=window.jspdf;
+      const doc=new jsPDF({unit:'mm',format:[P.hwmm,P.hhmm],orientation:P.hwmm>P.hhmm?'landscape':'portrait',compress:true});
+      const bw=P.cols*P.w, bh=P.rows*P.h;
+      const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
+      const art=armarPieza(P.w,P.h,P.girar,P.modo);
+      const bpx=mm2px(P.sng);
+      const jpg=c=>c.toDataURL('image/jpeg',0.92);
+      // sangrado del perímetro (se dibuja primero, queda abajo)
+      const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(banda(art,l,bpx)));
+      for(let c=0;c<P.cols;c++){
+        doc.addImage(B.arriba,'JPEG',x0+c*P.w,y0-P.sng,P.w,P.sng,'ba','FAST');
+        doc.addImage(B.abajo ,'JPEG',x0+c*P.w,y0+bh   ,P.w,P.sng,'bb','FAST');
+      }
+      for(let r=0;r<P.rows;r++){
+        doc.addImage(B.izq,'JPEG',x0-P.sng,y0+r*P.h,P.sng,P.h,'bi','FAST');
+        doc.addImage(B.der,'JPEG',x0+bw   ,y0+r*P.h,P.sng,P.h,'bd','FAST');
+      }
+      doc.addImage(B.ai,'JPEG',x0-P.sng,y0-P.sng,P.sng,P.sng,'ca','FAST');
+      doc.addImage(B.ad,'JPEG',x0+bw   ,y0-P.sng,P.sng,P.sng,'cb','FAST');
+      doc.addImage(B.bi,'JPEG',x0-P.sng,y0+bh   ,P.sng,P.sng,'cc','FAST');
+      doc.addImage(B.bd,'JPEG',x0+bw   ,y0+bh   ,P.sng,P.sng,'cd','FAST');
+      // las piezas
+      const A=jpg(art);
+      for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
+        doc.addImage(A,'JPEG',x0+c*P.w,y0+r*P.h,P.w,P.h,'art','FAST');
+      // marcas de corte, vectoriales
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.1);
+      marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>doc.line(a,b,c2,d));
+      doc.save(`${S.nombre}-${P.n}up-${P.hwmm}x${P.hhmm}.pdf`);
+    }catch(e){ console.error(e); alert('No se pudo armar el PDF. Probá con una hoja más chica o un archivo más liviano.'); }
+    $('#btnPdf').disabled=false; $('#btnPdf').textContent='Descargar el PDF para imprimir';
+  },60);
+};
+
+/* ---------------- eventos ---------------- */
+document.querySelectorAll('#chipsPieza .chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on'));
+  ch.classList.add('on'); $('#pw').value=ch.dataset.w; $('#ph').value=ch.dataset.h; calcular();
+});
+['#pw','#ph','#hw','#hh','#mrg','#sng'].forEach(s=>$(s).oninput=()=>{
+  if(s==='#pw'||s==='#ph') document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on'));
+  calcular();
+});
+$('#hoja').onchange=e=>{$('#wrapHoja').classList.toggle('hide',e.target.value!=='libre');calcular()};
+$('#ajuste').onchange=calcular; $('#rot').onchange=calcular;
+$('#file').onchange=e=>{if(e.target.files[0])abrir(e.target.files[0])};
+$('#btnOtra').onclick=()=>{S.src=null;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
+window.addEventListener('resize',dibujar);
+</script>
+</body>
+</html>
