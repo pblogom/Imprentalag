@@ -387,6 +387,10 @@ function calcular(){
     if(Math.abs(pw2-pwmm)>0.5||Math.abs(ph2-phmm)>0.5)
       av+=`<div class="note">El PDF mide <b>${pw2} × ${ph2} mm</b>. ¿Es esa la medida del volante?<button onclick="document.querySelector('#pw').value=${pw2};document.querySelector('#ph').value=${ph2};calcular()">Usar esa medida →</button></div>`;
   }
+  if(S.trim&&(pmm.x>0.5||pmm.y>0.5)){
+    const aw=Math.round(pwmm*(S.detect.w/S.orig.width)), ah=Math.round(phmm*(S.detect.h/S.orig.height));
+    if(aw>10&&ah>10) av+=`<div class="note ok"><b>Lo mejor: cortarlo a ${aw} × ${ah} mm</b>, que es lo que mide el color del archivo. Así no se pierde nada de diseño ni queda blanco. El volante sale unos milímetros más chico y no se nota.<button onclick="document.querySelector('#pw').value=${aw};document.querySelector('#ph').value=${ah};calcular()">Cortar a ${aw} × ${ah} →</button></div>`;
+  }
   if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
     av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='entrar';calcular()">No perder diseño →</button></div>`;
   if(modo==='entrar'&&(pmm.x>0.5||pmm.y>0.5))
