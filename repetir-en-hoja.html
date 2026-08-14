@@ -10,7 +10,7 @@
 <style>
 :root{--paper:#F4EFE6;--paper-2:#FBF8F2;--ink:#191512;--ink-2:#5C534A;--ink-3:#8B8177;
 --line:#DFD5C4;--line-2:#EDE5D7;--magenta:#C8006B;--magenta-soft:#FBE7F1;
---green:#256B4E;--green-soft:#E4F0EA;--amber:#8A5A00;--amber-soft:#FBF0D8;--r:14px}
+--green:#256B4E;--green-soft:#E4F0EA;--amber:#8A5A00;--amber-soft:#FBF0D8;--r:14px;--hdh:52px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:16px;line-height:1.45}
@@ -21,6 +21,7 @@ header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1p
 .dot{width:7px;height:7px;border-radius:50%;background:var(--magenta);display:inline-block}
 .hd-inner small{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);margin-left:auto}
 .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:14px}
+.card:first-child{margin-top:0}
 .card-t{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px}
 .step{display:flex;align-items:center;gap:8px;margin:0 0 12px}
 .step-n{width:20px;height:20px;border-radius:50%;background:var(--magenta);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -34,18 +35,22 @@ input:focus,select:focus{outline:2px solid var(--magenta);outline-offset:-1px;bo
 .par>div{flex:1}
 .par .x{padding-bottom:13px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-family:inherit;font-size:14px;font-weight:600;padding:9px 13px;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:999px;cursor:pointer}
+.chip{font-family:inherit;font-size:14px;font-weight:600;padding:9px 13px;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:999px;cursor:pointer;transition:background .15s ease-out,color .15s ease-out,border-color .15s ease-out,transform .1s ease-out}
 .chip.on{background:var(--ink);color:var(--paper-2);border-color:var(--ink)}
-.btn{width:100%;padding:15px;border-radius:12px;border:0;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;display:block}
+.chip:active{transform:scale(.96)}
+.btn{width:100%;padding:15px;border-radius:12px;border:0;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;display:block;transition:transform .1s ease-out}
 .btn-p{background:var(--magenta);color:#fff}
 .btn-s{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .btn:disabled{opacity:.45;cursor:default}
+.btn:active:not(:disabled){transform:scale(.96)}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn{margin-top:0}
 .note{background:var(--amber-soft);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13.5px;color:#4A3200;margin-top:12px}
+.note:first-child{margin-top:0}
 .note.ok{background:var(--green-soft);border-left-color:var(--green);color:#12402D}
 .note b{font-weight:700}
 details{border-top:1px solid var(--line-2);padding:12px 0;margin-top:4px}
+details.sub{border-top:0;margin-top:0;padding:0}
 summary{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
 summary::-webkit-details-marker{display:none}
 summary:after{content:' ▾';color:var(--magenta)}
@@ -56,12 +61,16 @@ details[open] summary:after{content:' ▴'}
 .drop .t1{font-size:17px;font-weight:700;margin-top:10px}
 .drop .t2{font-size:13.5px;color:var(--ink-3);margin-top:4px}
 #file{display:none}
-.stage{background:#EDE7DB;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;min-height:140px}
-#prev{max-width:100%;height:auto;display:block;box-shadow:0 2px 16px rgba(25,21,18,.18)}
-#lupa{width:100%;max-width:100%;height:auto;display:block;border-radius:8px;background:#fff}
+.stage{background:#EDE7DB;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;min-height:140px;position:relative;overflow:hidden}
+#prev{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#prev:active{cursor:grabbing}
+.pv-zoom{position:absolute;right:22px;bottom:22px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.pv-zoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:20px;font-weight:700;font-family:inherit;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(25,21,18,.15);transition:transform .1s ease-out}
+.pv-zoom button:active{transform:scale(.94)}
 .leg{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
 .leg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--magenta);vertical-align:middle;margin-right:5px}
 .leg b{display:inline-block;width:16px;height:10px;background:#D9CFBB;border:1px solid var(--ink-3);vertical-align:middle;margin-right:5px}
+.leg-hint{width:100%;text-align:center;order:99;font-size:11.5px;color:var(--ink-3)}
 .rend{background:var(--ink);color:var(--paper-2);border-radius:var(--r);padding:18px;margin-top:14px}
 .rend .lab{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.6}
 .rend .big{font-family:'IBM Plex Mono',monospace;font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin:4px 0 2px}
@@ -72,10 +81,65 @@ details[open] summary:after{content:' ▴'}
 .dl .v{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
 .busy{text-align:center;color:var(--ink-3);padding:30px;font-size:15px}
 .hide{display:none}
+
+/* ---- wizard de dos columnas ---- */
+#vApp{max-width:1180px;margin:0 auto;padding:0 16px 24px}
+.wz-tabs{display:flex;gap:2px;position:sticky;top:0;background:var(--paper);z-index:5;padding:10px 0 8px;margin-bottom:2px}
+.wz-tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);padding:8px 4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:color .15s ease-out,border-color .15s ease-out}
+.wz-tab b{width:18px;height:18px;border-radius:50%;background:var(--line);color:var(--ink-2);font-family:'IBM Plex Mono',monospace;font-size:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;transition:background .15s ease-out,color .15s ease-out}
+.wz-tab.on{color:var(--ink);border-bottom-color:var(--magenta)}
+.wz-tab.on b{background:var(--magenta);color:#fff}
+.wz-panel.hide{display:none}
+.wz-nav{display:flex;gap:8px;position:sticky;bottom:0;background:var(--paper);padding:10px 0 calc(10px + env(safe-area-inset-bottom));margin-top:6px;border-top:1px solid var(--line-2)}
+.wz-nav .btn{margin-top:0}
+.wz-nav .btn.hide{display:none}
+#wzBack{flex:0 0 auto;width:auto;padding-left:18px;padding-right:18px}
+#wzNext{flex:1}
+
+.subtabs{display:flex;gap:2px;margin:0 0 12px;border-bottom:1px solid var(--line-2)}
+.subtab{flex:1;background:none;border:0;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);padding:9px 4px;cursor:pointer;transition:color .15s ease-out,border-color .15s ease-out}
+.subtab.on{color:var(--ink);border-bottom-color:var(--magenta)}
+.subpanel.hide{display:none}
+
+.avisos-wrap .avisos-resto{display:none}
+.avisos-wrap.abierto .avisos-resto{display:block}
+.mas-avisos{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px dashed var(--line);margin-top:10px;padding:8px 0 0;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.03em;color:var(--magenta);cursor:pointer}
+
+.preview-col{display:none}
+.pv-close{display:none;width:100%;text-align:right;background:none;border:0;padding:6px 0 10px;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer}
+.fab-preview{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:120;background:var(--ink);color:var(--paper-2);border:0;border-radius:999px;padding:13px 18px;font-family:inherit;font-weight:700;font-size:14px;box-shadow:0 4px 18px rgba(25,21,18,.28),0 1px 3px rgba(25,21,18,.4);cursor:pointer;transition:transform .1s ease-out}
+.fab-preview:active{transform:scale(.96)}
+
+@media(max-width:879.98px){
+  body.pv-open{overflow:hidden}
+  body.pv-open .preview-col{
+    display:flex;flex-direction:column;position:fixed;inset:0;z-index:300;
+    background:var(--paper);padding:calc(10px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+    overflow-y:auto;
+  }
+  body.pv-open .pv-close{display:block}
+  body.pv-open .fab-preview{display:none}
+}
+
+@media(min-width:880px){
+  .fab-preview{display:none}
+  .appgrid{display:grid;grid-template-columns:minmax(380px,1fr) minmax(380px,440px);gap:22px;align-items:start}
+  .preview-col{
+    display:flex!important;flex-direction:column;position:sticky;top:var(--hdh);
+    height:calc(100vh - var(--hdh) - 20px);overflow-y:auto;padding-right:4px;
+  }
+  .preview-col .stage{flex:1;min-height:0}
+  .form-col{
+    display:flex;flex-direction:column;position:sticky;top:var(--hdh);
+    height:calc(100vh - var(--hdh) - 20px);overflow-y:auto;padding-right:4px;
+  }
+  .pv-close{display:none!important}
+}
 </style>
 </head>
 <body>
 <header><div class="hd-inner"><span class="dot"></span><h1>Repetir en la hoja</h1><small>IMPRENTA</small></div></header>
+
 <div class="wrap">
 
   <!-- 1. ARCHIVO -->
@@ -91,116 +155,161 @@ details[open] summary:after{content:' ▴'}
 
   <div id="vBusy" class="hide"><div class="card"><div class="busy" id="busyTxt">Abriendo el archivo…</div></div></div>
 
-  <!-- 2. CONFIG + RESULTADO -->
-  <div id="vRes" class="hide">
+</div>
 
-    <div class="card">
-      <div class="step"><span class="step-n">1</span><span class="step-t">Medida del volante</span></div>
-      <div class="chips" id="chipsPieza">
-        <button class="chip" data-w="90" data-h="50">Tarjeta 90×50</button>
-        <button class="chip on" data-w="100" data-h="150">Volante 100×150</button>
-        <button class="chip" data-w="105" data-h="148">A6</button>
-        <button class="chip" data-w="148" data-h="210">A5</button>
-      </div>
-      <div class="par" style="margin-top:12px">
-        <div><label class="fl">Ancho (mm)</label><input type="number" id="pw" inputmode="numeric" value="100"></div>
-        <div class="x">×</div>
-        <div><label class="fl">Alto (mm)</label><input type="number" id="ph" inputmode="numeric" value="150"></div>
-      </div>
-    </div>
+<!-- 2. WIZARD: ajustar → hoja → descargar, con preview en vivo -->
+<div id="vApp" class="hide">
+  <div class="appgrid">
 
-    <div class="card">
-      <div class="step"><span class="step-n">2</span><span class="step-t">Hoja</span></div>
-      <select id="hoja">
-        <option value="325,475">32,5 × 47,5 cm — pliego color</option>
-        <option value="220,340">22 × 34 cm — pliego chico</option>
-        <option value="210,297">A4 — 21 × 29,7 cm</option>
-        <option value="297,420">A3 — 29,7 × 42 cm</option>
-        <option value="148,210">A5 — 14,8 × 21 cm</option>
-        <option value="libre">Otra medida…</option>
-      </select>
-      <div id="wrapHoja" class="hide par" style="margin-top:12px">
-        <div><label class="fl">Ancho hoja (mm)</label><input type="number" id="hw" inputmode="numeric" value="325"></div>
-        <div class="x">×</div>
-        <div><label class="fl">Alto hoja (mm)</label><input type="number" id="hh" inputmode="numeric" value="475"></div>
-      </div>
-    </div>
-
-    <div class="rend">
-      <div class="lab">Entran por hoja</div>
-      <div class="big" id="cant">—</div>
-      <div class="sub" id="cantSub">—</div>
-    </div>
-
-    <div class="card">
+    <div class="preview-col">
+      <button class="pv-close" id="btnPvClose" type="button">✕ Cerrar</button>
       <p class="card-t">Así queda la hoja</p>
-      <div class="stage"><canvas id="prev"></canvas></div>
-      <div class="leg"><span><i></i>Por acá corta Mingo</span><span><b></b>Sangrado</span></div>
-      <div id="lupaBox">
-        <p class="card-t" style="margin:18px 0 8px">Mirá de cerca antes de bajarlo</p>
-        <div class="stage" style="padding:10px"><canvas id="lupa"></canvas></div>
-        <div class="chips" style="margin-top:10px" id="chipsZoom">
-          <button class="chip on" data-z="1">Tamaño real</button>
-          <button class="chip" data-z="2">Doble</button>
-          <button class="chip" data-z="4">Cuádruple</button>
+      <div class="stage" id="stage">
+        <canvas id="prev"></canvas>
+        <div class="pv-zoom">
+          <button id="zIn" type="button" aria-label="Acercar">+</button>
+          <button id="zOut" type="button" aria-label="Alejar">−</button>
         </div>
-        <div style="font-size:13px;color:var(--ink-3);margin-top:8px">Arrastrá el dedo sobre la hoja de arriba para mover la lupa. Fijate sobre todo en los bordes de afuera y en las esquinas.</div>
+      </div>
+      <div class="leg">
+        <span><i></i>Por acá corta Mingo</span><span><b></b>Sangrado</span>
+        <span class="leg-hint">Pellizcá o girá la rueda para acercar · arrastrá para mover</span>
       </div>
     </div>
 
-    <div id="avisos"></div>
+    <div class="form-col">
+      <div class="wz-tabs">
+        <button class="wz-tab on" data-paso="2" type="button"><b>1</b>Ajustar</button>
+        <button class="wz-tab" data-paso="3" type="button"><b>2</b>Hoja</button>
+        <button class="wz-tab" data-paso="4" type="button"><b>3</b>Descargar</button>
+      </div>
 
-    <button class="btn btn-p" id="btnPdf">Descargar el PDF para imprimir</button>
-    <button class="btn btn-s" id="btnOtra">Empezar de nuevo</button>
+      <!-- paso 2: Ajustar -->
+      <div class="wz-panel" data-paso="2">
+        <div class="subtabs">
+          <button class="subtab on" data-subpaso="medida" type="button">Medida</button>
+          <button class="subtab" data-subpaso="ajustes" type="button">Ajustes del arte</button>
+        </div>
 
-    <div class="card">
-      <details>
-        <summary>Otras opciones</summary>
-        <label class="fl">Margen de la hoja (mm)</label>
-        <input type="number" id="mrg" inputmode="numeric" value="4">
-        <label class="fl">Sangrado del borde de afuera (mm)</label>
-        <input type="number" id="sng" inputmode="numeric" value="5">
-        <label class="fl">Borde de afuera del pliego</label>
-        <select id="relleno">
-          <option value="espejo">Espejar el borde (lo normal)</option>
-          <option value="estira">Estirar el último punto</option>
-          <option value="color">Color liso</option>
-        </select>
-        <div id="wrapColor" class="hide">
-          <label class="fl">Tocá la imagen para tomar el color</label>
-          <canvas id="cuenta" style="width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
-          <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-            <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
-            <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
+        <div id="avisosArte"></div>
+
+        <div class="subpanel" data-subpaso="medida">
+          <div class="card">
+            <div class="step"><span class="step-n">1</span><span class="step-t">Medida del volante</span></div>
+            <div class="chips" id="chipsPieza">
+              <button class="chip" data-w="90" data-h="50">Tarjeta 90×50</button>
+              <button class="chip on" data-w="100" data-h="150">Volante 100×150</button>
+              <button class="chip" data-w="105" data-h="148">A6</button>
+              <button class="chip" data-w="148" data-h="210">A5</button>
+            </div>
+            <div class="par" style="margin-top:12px">
+              <div><label class="fl">Ancho (mm)</label><input type="number" id="pw" inputmode="numeric" value="100"></div>
+              <div class="x">×</div>
+              <div><label class="fl">Alto (mm)</label><input type="number" id="ph" inputmode="numeric" value="150"></div>
+            </div>
           </div>
         </div>
-        <label class="fl">Borde blanco del archivo</label>
-        <select id="trim">
-          <option value="si">Sacárselo (recomendado)</option>
-          <option value="no">Dejarlo como vino</option>
-        </select>
-        <label class="fl">Si la imagen no tiene la proporción justa</label>
-        <select id="ajuste">
-          <option value="cubrir">Recortar centrado (llena la pieza)</option>
-          <option value="espejar">Entrar entera y completar espejando</option>
-          <option value="entrar">Entrar entera (deja blanco a los costados)</option>
-        </select>
-        <label class="fl" id="lblPos">Posición del arte</label>
-        <div class="chips" id="chipsPos">
-          <button class="chip on" data-p="centro">Centrado</button>
-          <button class="chip" data-p="inicio" id="posA">Pegado arriba</button>
-          <button class="chip" data-p="fin" id="posB">Pegado abajo</button>
+
+        <div class="subpanel hide" data-subpaso="ajustes">
+          <div class="card">
+            <label class="fl">Sangrado del borde de afuera (mm)</label>
+            <input type="number" id="sng" inputmode="numeric" value="5">
+            <label class="fl">Borde de afuera del pliego</label>
+            <select id="relleno">
+              <option value="espejo">Espejar el borde (lo normal)</option>
+              <option value="estira">Estirar el último punto</option>
+              <option value="color">Color liso</option>
+            </select>
+            <div id="wrapColor" class="hide">
+              <label class="fl">Tocá la imagen para tomar el color</label>
+              <canvas id="cuenta" style="width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
+                <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
+              </div>
+            </div>
+            <label class="fl">Borde blanco del archivo</label>
+            <select id="trim">
+              <option value="si">Sacárselo (recomendado)</option>
+              <option value="no">Dejarlo como vino</option>
+            </select>
+            <label class="fl">Si la imagen no tiene la proporción justa</label>
+            <select id="ajuste">
+              <option value="cubrir">Recortar centrado (llena la pieza)</option>
+              <option value="espejar">Entrar entera y completar espejando</option>
+              <option value="entrar">Entrar entera (deja blanco a los costados)</option>
+            </select>
+            <label class="fl" id="lblPos">Posición del arte</label>
+            <div class="chips" id="chipsPos">
+              <button class="chip on" data-p="centro">Centrado</button>
+              <button class="chip" data-p="inicio" id="posA">Pegado arriba</button>
+              <button class="chip" data-p="fin" id="posB">Pegado abajo</button>
+            </div>
+          </div>
         </div>
-        <label class="fl">Orientación</label>
-        <select id="rot">
-          <option value="auto">La que entre más copias</option>
-          <option value="no">Dejar como está</option>
-          <option value="si">Girada 90°</option>
-        </select>
-        <div id="datos" style="margin-top:14px"></div>
-      </details>
+      </div>
+
+      <!-- paso 3: Hoja -->
+      <div class="wz-panel hide" data-paso="3">
+        <div class="card">
+          <div class="step"><span class="step-n">2</span><span class="step-t">Hoja</span></div>
+          <select id="hoja">
+            <option value="325,475">32,5 × 47,5 cm — pliego color</option>
+            <option value="220,340">22 × 34 cm — pliego chico</option>
+            <option value="210,297">A4 — 21 × 29,7 cm</option>
+            <option value="297,420">A3 — 29,7 × 42 cm</option>
+            <option value="148,210">A5 — 14,8 × 21 cm</option>
+            <option value="libre">Otra medida…</option>
+          </select>
+          <div id="wrapHoja" class="hide par" style="margin-top:12px">
+            <div><label class="fl">Ancho hoja (mm)</label><input type="number" id="hw" inputmode="numeric" value="325"></div>
+            <div class="x">×</div>
+            <div><label class="fl">Alto hoja (mm)</label><input type="number" id="hh" inputmode="numeric" value="475"></div>
+          </div>
+        </div>
+
+        <div class="rend">
+          <div class="lab">Entran por hoja</div>
+          <div class="big" id="cant">—</div>
+          <div class="sub" id="cantSub">—</div>
+        </div>
+
+        <div id="avisosHoja"></div>
+
+        <div class="card">
+          <details class="sub">
+            <summary>Margen, orientación y detalle técnico</summary>
+            <label class="fl">Margen de la hoja (mm)</label>
+            <input type="number" id="mrg" inputmode="numeric" value="4">
+            <label class="fl">Orientación</label>
+            <select id="rot">
+              <option value="auto">La que entre más copias</option>
+              <option value="no">Dejar como está</option>
+              <option value="si">Girada 90°</option>
+            </select>
+            <div id="datos" style="margin-top:14px"></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- paso 4: Descargar -->
+      <div class="wz-panel hide" data-paso="4">
+        <div class="card">
+          <div class="step"><span class="step-n">3</span><span class="step-t">Descargar</span></div>
+          <p style="font-size:13.5px;color:var(--ink-2);margin:0">Revisá la vista previa (o la lupa) antes de bajar el PDF. Sale con marcas de corte y el sangrado ya puesto.</p>
+        </div>
+        <button class="btn btn-p" id="btnPdf">Descargar el PDF para imprimir</button>
+        <button class="btn btn-s" id="btnOtra">Empezar de nuevo</button>
+      </div>
+
+      <div class="wz-nav">
+        <button class="btn btn-s" id="wzBack" type="button">← Atrás</button>
+        <button class="btn btn-p" id="wzNext" type="button">Siguiente →</button>
+      </div>
     </div>
   </div>
+
+  <button class="fab-preview" id="btnVerPreview" type="button">👁 Ver hoja</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -209,14 +318,39 @@ details[open] summary:after{content:' ▴'}
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=s=>document.querySelector(s);
 const DPI=300, MARCA=3;               // largo de la marca de corte, en mm
-const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null,art:null,bandas:null,pdfW:0,pdfH:0,lupa:null,zoom:1};
+const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null,art:null,bandas:null,pdfW:0,pdfH:0,paso:2,subpaso:'medida',punteros:new Map(),cam:{x:0,y:0,k:0,kBase:0,kMax:0}};
 
 function vista(v){
   $('#vCarga').classList.toggle('hide',v!=='carga');
   $('#vBusy').classList.toggle('hide',v!=='busy');
-  $('#vRes').classList.toggle('hide',v!=='res');
+  $('#vApp').classList.toggle('hide',v!=='app');
 }
 const num=(id,def)=>{const v=parseFloat($(id).value);return isNaN(v)||v<=0?def:v};
+
+/* ---------------- navegación del wizard ---------------- */
+function medirHeader(){ document.documentElement.style.setProperty('--hdh', ($('header').offsetHeight||52)+'px'); }
+medirHeader(); window.addEventListener('resize', medirHeader);
+
+function subpasoIr(n){
+  S.subpaso=n;
+  document.querySelectorAll('.subtab').forEach(b=>b.classList.toggle('on', b.dataset.subpaso===n));
+  document.querySelectorAll('.subpanel').forEach(p=>p.classList.toggle('hide', p.dataset.subpaso!==n));
+  if(n==='ajustes' && $('#relleno').value==='color') pintarCuenta(); // recién visible: hay que medirlo de nuevo
+}
+
+function pasoIr(n){
+  n=Math.max(2,Math.min(4,n));
+  S.paso=n;
+  if(n===2) subpasoIr('medida');
+  document.querySelectorAll('.wz-tab').forEach(b=>b.classList.toggle('on', +b.dataset.paso===n));
+  document.querySelectorAll('.wz-panel').forEach(p=>p.classList.toggle('hide', +p.dataset.paso!==n));
+  $('#wzBack').classList.toggle('hide', n<=2);
+  $('#wzNext').classList.toggle('hide', n===4);
+  $('.form-col').scrollTop=0;
+  requestAnimationFrame(dibujar); // el contenedor visible cambió de tamaño
+}
+function previewAbrir(){ document.body.classList.add('pv-open'); requestAnimationFrame(dibujar); }
+function previewCerrar(){ document.body.classList.remove('pv-open'); }
 
 /* ---------------- carga ---------------- */
 $('#drop').onclick=()=>$('#file').click();
@@ -230,7 +364,7 @@ async function abrir(f){
   try{
     S.pdfW=0;S.pdfH=0;
     if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await abrirPdf(f); else await abrirImg(f);
-    S.lupa=null; vista('res'); calcular(); if($('#relleno').value==='color') pintarCuenta();
+    vista('app'); pasoIr(2); calcular(); if($('#relleno').value==='color') pintarCuenta();
   }catch(e){ console.error(e); alert('No se pudo abrir el archivo. Probá con un JPG o un PNG.'); vista('carga'); }
 }
 function abrirImg(f){return new Promise((ok,mal)=>{
@@ -372,6 +506,23 @@ function banda(art,lado,bpx,modo){
   return c;
 }
 
+/* ---------------- avisos priorizados ---------------- */
+// Muestra solo el aviso más prioritario de la lista + un toggle para desplegar el resto.
+// Los avisos ocultos quedan en el DOM (display:none), así que sus botones de acción siguen andando.
+function pintarAvisos(contenedorId, avisos){
+  const cont=$(contenedorId);
+  if(!avisos.length){ cont.innerHTML=''; return; }
+  avisos.sort((a,b)=>a.prioridad-b.prioridad);
+  const [primero,...resto]=avisos;
+  let html=primero.html;
+  if(resto.length){
+    html=`<div class="avisos-wrap">${html}`+
+      `<button class="mas-avisos" type="button" onclick="this.closest('.avisos-wrap').classList.toggle('abierto')">+${resto.length} sugerencia${resto.length>1?'s':''} más ▾</button>`+
+      `<div class="avisos-resto">${resto.map(a=>a.html).join('')}</div></div>`;
+  }
+  cont.innerHTML=html;
+}
+
 /* ---------------- cálculo ---------------- */
 function calcular(){
   if(!S.orig) return;
@@ -402,7 +553,8 @@ function calcular(){
     $('#cant').textContent='0';
     $('#cantSub').textContent='No entra ninguno con esta hoja';
     $('#btnPdf').disabled=true;
-    $('#avisos').innerHTML=`<div class="note"><b>No entra.</b> El volante de ${pwmm}×${phmm} mm no cabe en una hoja de ${hwmm}×${hhmm} mm dejando ${mrg} mm de margen. Probá con una hoja más grande o achicá el volante.</div>`;
+    $('#avisosArte').innerHTML='';
+    $('#avisosHoja').innerHTML=`<div class="note"><b>No entra.</b> El volante de ${pwmm}×${phmm} mm no cabe en una hoja de ${hwmm}×${hhmm} mm dejando ${mrg} mm de margen. Probá con una hoja más grande o achicá el volante.</div>`;
     const p=$('#prev');p.width=10;p.height=10;
     return;
   }
@@ -413,6 +565,7 @@ function calcular(){
 
   const dpiReal=Math.min(S.src.width/(mejor.w/25.4), S.src.height/(mejor.h/25.4));
   const dpiReal2=mejor.girar?Math.min(S.src.height/(mejor.w/25.4),S.src.width/(mejor.h/25.4)):dpiReal;
+  S.plan.dpiReal2=dpiReal2;
   $('#datos').innerHTML=[
     ['Bloque impreso',`${bw} × ${bh} mm`],
     ['Con sangrado',`${bw+2*sng} × ${bh+2*sng} mm`],
@@ -420,7 +573,7 @@ function calcular(){
     ['Resolución final',`${Math.round(dpiReal2)} dpi`]
   ].map(f=>`<div class="dl"><span class="k">${f[0]}</span><span class="v">${f[1]}</span></div>`).join('');
 
-  let av='';
+  const avArte=[], avHoja=[];
   // ¿bajando el margen entran más? (piso: 3 mm)
   let sug=null;
   for(let m=Math.floor(mrg)-1;m>=3;m--){
@@ -429,7 +582,7 @@ function calcular(){
     opciones.forEach(o=>{n=Math.max(n,Math.floor(dW/o.w)*Math.floor(dH/o.h))});
     if(n>mejor.n){sug={m,n};break;}
   }
-  if(sug) av+=`<div class="note"><b>Con ${sug.m} mm de margen entrarían ${sug.n}</b> en vez de ${mejor.n}. Fijate hasta dónde puede imprimir la máquina antes de bajarlo.<button onclick="document.querySelector('#mrg').value=${sug.m};calcular()">Probar con ${sug.m} mm →</button></div>`;
+  if(sug) avHoja.push({prioridad:3,html:`<div class="note"><b>Con ${sug.m} mm de margen entrarían ${sug.n}</b> en vez de ${mejor.n}. Fijate hasta dónde puede imprimir la máquina antes de bajarlo.<button onclick="document.querySelector('#mrg').value=${sug.m};calcular()">Probar con ${sug.m} mm →</button></div>`});
   const pmm=(()=>{const sw=mejor.girar?S.src.height:S.src.width, sh=mejor.girar?S.src.width:S.src.height;
     const W=mm2px(mejor.w),H=mm2px(mejor.h);
     const k=modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
@@ -438,14 +591,14 @@ function calcular(){
     const r=v=>Math.abs(v-Math.round(v))<0.4?Math.round(v):Math.round(v*10)/10;
     const pw2=r(S.pdfW), ph2=r(S.pdfH);
     if(Math.abs(pw2-pwmm)>0.5||Math.abs(ph2-phmm)>0.5)
-      av+=`<div class="note">El PDF mide <b>${pw2} × ${ph2} mm</b>. ¿Es esa la medida del volante?<button onclick="document.querySelector('#pw').value=${pw2};document.querySelector('#ph').value=${ph2};calcular()">Usar esa medida →</button></div>`;
+      avArte.push({prioridad:6,html:`<div class="note">El PDF mide <b>${pw2} × ${ph2} mm</b>. ¿Es esa la medida del volante?<button onclick="document.querySelector('#pw').value=${pw2};document.querySelector('#ph').value=${ph2};calcular()">Usar esa medida →</button></div>`});
   }
   if(S.trim&&(pmm.x>0.5||pmm.y>0.5)){
     const aw=Math.round(pwmm*(S.detect.w/S.orig.width)), ah=Math.round(phmm*(S.detect.h/S.orig.height));
-    if(aw>10&&ah>10) av+=`<div class="note ok"><b>Lo mejor: cortarlo a ${aw} × ${ah} mm</b>, que es lo que mide el color del archivo. Así no se pierde nada de diseño ni queda blanco. El volante sale unos milímetros más chico y no se nota.<button onclick="document.querySelector('#pw').value=${aw};document.querySelector('#ph').value=${ah};calcular()">Cortar a ${aw} × ${ah} →</button></div>`;
+    if(aw>10&&ah>10) avArte.push({prioridad:7,html:`<div class="note ok"><b>Lo mejor: cortarlo a ${aw} × ${ah} mm</b>, que es lo que mide el color del archivo. Así no se pierde nada de diseño ni queda blanco. El volante sale unos milímetros más chico y no se nota.<button onclick="document.querySelector('#pw').value=${aw};document.querySelector('#ph').value=${ah};calcular()">Cortar a ${aw} × ${ah} →</button></div>`});
   }
   if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
-    av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`;
+    avArte.push({prioridad:1,html:`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`});
   // las opciones de posición se nombran según dónde sobra espacio
   const ejeV=pmm.y>=pmm.x;
   $('#lblPos').textContent = (pmm.x>0.5||pmm.y>0.5)
@@ -457,164 +610,125 @@ function calcular(){
     const sobra=Math.max(pmm.x,pmm.y);
     const qué = relleno==='color'?'con el color elegido':relleno==='estira'?'estirando el borde':'espejando';
     if(sobra>10)
-      av+=`<div class="note"><b>Sobra bastante: ${sobra.toFixed(1)} mm por lado.</b> Rellenar tanto se va a notar. Fijate con la lupa y, si no convence, probá recortar diseño o un color liso.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Recortar diseño →</button><button onclick="document.querySelector('#relleno').value='color';document.querySelector('#wrapColor').classList.remove('hide');pintarCuenta();calcular()">Usar color liso →</button></div>`;
+      avArte.push({prioridad:2,html:`<div class="note"><b>Sobra bastante: ${sobra.toFixed(1)} mm por lado.</b> Rellenar tanto se va a notar. Fijate con la lupa y, si no convence, probá recortar diseño o un color liso.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Recortar diseño →</button><button onclick="document.querySelector('#relleno').value='color';document.querySelector('#wrapColor').classList.remove('hide');pintarCuenta();calcular()">Usar color liso →</button></div>`});
     else if(sobra>4&&relleno==='espejo')
-      av+=`<div class="note">Se rellenan <b>${sobra.toFixed(1)} mm</b> espejando. Si cerca de ese borde hay texto o un logo, va a aparecer repetido al revés. Miralo con la lupa.<button onclick="document.querySelector('#relleno').value='estira';calcular()">Estirar en vez de espejar →</button></div>`;
+      avArte.push({prioridad:5,html:`<div class="note">Se rellenan <b>${sobra.toFixed(1)} mm</b> espejando. Si cerca de ese borde hay texto o un logo, va a aparecer repetido al revés. Miralo con la lupa.<button onclick="document.querySelector('#relleno').value='estira';calcular()">Estirar en vez de espejar →</button></div>`});
     else
-      av+=`<div class="note ok">Entra el diseño completo y el sobrante se rellena ${qué}: <b>${pmm.x.toFixed(1)} mm a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b>. No se pierde diseño ni queda blanco. Revisalo con la lupa por si hay texto pegado al borde.</div>`;
+      avArte.push({prioridad:8,html:`<div class="note ok">Entra el diseño completo y el sobrante se rellena ${qué}: <b>${pmm.x.toFixed(1)} mm a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b>. No se pierde diseño ni queda blanco. Revisalo con la lupa por si hay texto pegado al borde.</div>`});
   }
   if(modo==='entrar'&&(pmm.x>0.5||pmm.y>0.5))
-    av+=`<div class="note">Así no se pierde nada de diseño, pero queda <b>${pmm.x.toFixed(1)} mm de blanco a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b> dentro de cada volante.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Llegar al borde →</button></div>`;
-  if(S.trim) av+=`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`;
-  if(dpiReal2<150) av+=`<div class="note"><b>La imagen es chica.</b> A ${mejor.w}×${mejor.h} mm queda en ${Math.round(dpiReal2)} dpi. Va a salir borrosa. Pedile al cliente el archivo más grande.</div>`;
+    avArte.push({prioridad:3,html:`<div class="note">Así no se pierde nada de diseño, pero queda <b>${pmm.x.toFixed(1)} mm de blanco a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b> dentro de cada volante.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Llegar al borde →</button></div>`});
+  if(S.trim) avArte.push({prioridad:9,html:`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`});
+  if(dpiReal2<150) avHoja.push({prioridad:2,html:`<div class="note"><b>La imagen es chica.</b> A ${mejor.w}×${mejor.h} mm queda en ${Math.round(dpiReal2)} dpi. Va a salir borrosa. Pedile al cliente el archivo más grande.</div>`});
   if(modo==='cubrir'){
     const arte=(mejor.girar?S.src.height:S.src.width)/(mejor.girar?S.src.width:S.src.height);
-    if(Math.abs(arte-mejor.w/mejor.h)>0.06) av+=`<div class="note">La proporción del archivo no coincide con ${mejor.w}×${mejor.h} mm, así que se recorta un poco por los costados. Mirá la vista previa antes de mandar.</div>`;
+    if(Math.abs(arte-mejor.w/mejor.h)>0.06) avArte.push({prioridad:4,html:`<div class="note">La proporción del archivo no coincide con ${mejor.w}×${mejor.h} mm, así que se recorta un poco por los costados. Mirá la vista previa antes de mandar.</div>`});
   }
-  // arte y bandas se calculan una sola vez por config (los usa la vista, la lupa y el PDF)
+  // arte y bandas se calculan una sola vez por config (los usa la vista y el PDF)
   S.art=armarPieza(mejor.w,mejor.h,mejor.girar,modo,relleno,pos);
   S.bandas=null;
   if(relleno!=='color'){
     const bpx=mm2px(sng); S.bandas={};
     ['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>S.bandas[l]=banda(S.art,l,bpx,relleno));
   }
-  $('#avisos').innerHTML=av;
+  pintarAvisos('#avisosArte', avArte);
+  pintarAvisos('#avisosHoja', avHoja);
+  fitCamara();
   dibujar();
 }
 
-// Cuánto diseño real se pierde (o cuánto blanco queda) al ajustar la proporción
-function perdida(P){
-  const sw=P.girar?S.src.height:S.src.width, sh=P.girar?S.src.width:S.src.height;
-  const W=mm2px(P.w), H=mm2px(P.h);
-  const k=P.modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
-  const dw=sw*k, dh=sh*k, esc=P.w/W;
-  return {x:Math.abs(dw-W)/2*esc, y:Math.abs(dh-H)/2*esc};
+/* ---------------- vista previa: cámara con pan/zoom continuo ---------------- */
+function calcularKMax(){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const dpiArte = S.plan?S.plan.dpiReal2:DPI;
+  const kPorResolucion = (dpiArte/25.4)/dpr;   // 1 px de canvas == 1 px real del arte
+  return Math.max(S.cam.kBase*4, Math.min(40, kPorResolucion));
+}
+function fitCamara(){
+  const P=S.plan; if(!P||P.n<1) return;
+  const st=$('#stage'), cw=st.clientWidth||320, ch=st.clientHeight||420, pad=28;
+  S.cam.kBase = Math.max(0.1, Math.min((cw-pad)/P.hwmm, (ch-pad)/P.hhmm));
+  S.cam.k = S.cam.kBase;
+  S.cam.x = P.hwmm/2; S.cam.y = P.hhmm/2;
+  S.cam.kMax = calcularKMax();
+}
+function reencuadrarSiHaceFalta(){
+  const P=S.plan; if(!P||P.n<1) return;
+  const st=$('#stage'), cw=st.clientWidth||320, ch=st.clientHeight||420, pad=28;
+  const kBaseNuevo=Math.max(0.1, Math.min((cw-pad)/P.hwmm, (ch-pad)/P.hhmm));
+  if(!S.cam.k || Math.abs(kBaseNuevo-S.cam.kBase)/S.cam.kBase>0.4){ fitCamara(); }
+  else { S.cam.kBase=kBaseNuevo; S.cam.kMax=calcularKMax(); }
+}
+function mm2c(mmx,mmy){
+  const c=$('#prev');
+  return [(mmx-S.cam.x)*S.cam.k + c._cssW/2, (mmy-S.cam.y)*S.cam.k + c._cssH/2];
+}
+function clampCamara(){
+  const P=S.plan; if(!P) return;
+  S.cam.k=Math.max(S.cam.kBase, Math.min(S.cam.kMax, S.cam.k));
+  const margen=0.35; // aire antes del límite, en fracción del ancho/alto de la hoja
+  S.cam.x=Math.max(-P.hwmm*margen, Math.min(P.hwmm*(1+margen), S.cam.x));
+  S.cam.y=Math.max(-P.hhmm*margen, Math.min(P.hhmm*(1+margen), S.cam.y));
+}
+function zoomEn(cx,cy,kNuevo){ // zoom discreto (rueda, botones): siempre relativo al estado actual
+  const P=S.plan; if(!P||P.n<1) return;
+  const c=$('#prev');
+  const mmx = S.cam.x + (cx - c._cssW/2)/S.cam.k;
+  const mmy = S.cam.y + (cy - c._cssH/2)/S.cam.k;
+  S.cam.k = Math.max(S.cam.kBase, Math.min(S.cam.kMax, kNuevo));
+  S.cam.x = mmx - (cx - c._cssW/2)/S.cam.k;
+  S.cam.y = mmy - (cy - c._cssH/2)/S.cam.k;
+  clampCamara(); dibujar();
 }
 
-/* ---------------- vista previa ---------------- */
 function dibujar(){
-  const P=S.plan; if(!P||P.n<1) return;
-  const st=document.querySelector('.stage').clientWidth||320;
-  const maxW=Math.max(200,Math.min(520,st-30));
-  const k=Math.min(maxW/P.hwmm, 620/P.hhmm);
-  const p=$('#prev'); p.width=Math.round(P.hwmm*k); p.height=Math.round(P.hhmm*k);
-  const x=p.getContext('2d');
-  x.fillStyle='#fff';x.fillRect(0,0,p.width,p.height);
+  const P=S.plan;
+  const c=$('#prev');
+  if(!P||P.n<1){ c.width=10; c.height=10; return; }
+  reencuadrarSiHaceFalta();
+
+  const st=$('#stage'), dpr=Math.min(2,window.devicePixelRatio||1);
+  const cssW=st.clientWidth||320, cssH=st.clientHeight||420;
+  c._cssW=cssW; c._cssH=cssH;
+  c.style.width=cssW+'px'; c.style.height=cssH+'px';
+  c.width=Math.round(cssW*dpr); c.height=Math.round(cssH*dpr);
+
+  const x=c.getContext('2d');
+  x.setTransform(dpr,0,0,dpr,0,0); // de acá en más, todo en coordenadas CSS
+  x.clearRect(0,0,cssW,cssH);
+
   const bw=P.cols*P.w, bh=P.rows*P.h;
-  const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
-  const art=S.art;
+  const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2, art=S.art, k=S.cam.k;
+  const rect=(mx,my,mw,mh,img)=>{ const [dx,dy]=mm2c(mx,my); if(img) x.drawImage(img,dx,dy,mw*k,mh*k); };
+
+  x.fillStyle='#fff';
+  const [hx0,hy0]=mm2c(0,0);
+  x.fillRect(hx0,hy0,P.hwmm*k,P.hhmm*k);
+
   // sangrado del perímetro, tal cual va a salir
   if(P.relleno==='color'){
     x.fillStyle=P.color;
-    x.fillRect((x0-P.sng)*k,(y0-P.sng)*k,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
+    const [dx,dy]=mm2c(x0-P.sng,y0-P.sng);
+    x.fillRect(dx,dy,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
   }else{
     const B=S.bandas;
-    for(let c=0;c<P.cols;c++){
-      x.drawImage(B.arriba,(x0+c*P.w)*k,(y0-P.sng)*k,P.w*k,P.sng*k);
-      x.drawImage(B.abajo ,(x0+c*P.w)*k,(y0+bh)*k   ,P.w*k,P.sng*k);
-    }
-    for(let r=0;r<P.rows;r++){
-      x.drawImage(B.izq,(x0-P.sng)*k,(y0+r*P.h)*k,P.sng*k,P.h*k);
-      x.drawImage(B.der,(x0+bw)*k   ,(y0+r*P.h)*k,P.sng*k,P.h*k);
-    }
-    x.drawImage(B.ai,(x0-P.sng)*k,(y0-P.sng)*k,P.sng*k,P.sng*k);
-    x.drawImage(B.ad,(x0+bw)*k   ,(y0-P.sng)*k,P.sng*k,P.sng*k);
-    x.drawImage(B.bi,(x0-P.sng)*k,(y0+bh)*k   ,P.sng*k,P.sng*k);
-    x.drawImage(B.bd,(x0+bw)*k   ,(y0+bh)*k   ,P.sng*k,P.sng*k);
+    for(let cc=0;cc<P.cols;cc++){ rect(x0+cc*P.w,y0-P.sng,P.w,P.sng,B.arriba); rect(x0+cc*P.w,y0+bh,P.w,P.sng,B.abajo); }
+    for(let rr=0;rr<P.rows;rr++){ rect(x0-P.sng,y0+rr*P.h,P.sng,P.h,B.izq); rect(x0+bw,y0+rr*P.h,P.sng,P.h,B.der); }
+    rect(x0-P.sng,y0-P.sng,P.sng,P.sng,B.ai); rect(x0+bw,y0-P.sng,P.sng,P.sng,B.ad);
+    rect(x0-P.sng,y0+bh,P.sng,P.sng,B.bi); rect(x0+bw,y0+bh,P.sng,P.sng,B.bd);
   }
   // piezas
-  for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
-    x.drawImage(art,(x0+c*P.w)*k,(y0+r*P.h)*k,P.w*k,P.h*k);
+  for(let cc=0;cc<P.cols;cc++)for(let rr=0;rr<P.rows;rr++) rect(x0+cc*P.w,y0+rr*P.h,P.w,P.h,art);
+
   // líneas de corte
   x.save();x.setLineDash([4,3]);x.lineWidth=1;x.strokeStyle='#C8006B';
-  for(let c=0;c<=P.cols;c++){x.beginPath();x.moveTo((x0+c*P.w)*k,(y0-P.sng)*k);x.lineTo((x0+c*P.w)*k,(y0+bh+P.sng)*k);x.stroke();}
-  for(let r=0;r<=P.rows;r++){x.beginPath();x.moveTo((x0-P.sng)*k,(y0+r*P.h)*k);x.lineTo((x0+bw+P.sng)*k,(y0+r*P.h)*k);x.stroke();}
+  for(let cc=0;cc<=P.cols;cc++){const [ax,ay]=mm2c(x0+cc*P.w,y0-P.sng),[bx,by]=mm2c(x0+cc*P.w,y0+bh+P.sng);x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();}
+  for(let rr=0;rr<=P.rows;rr++){const [ax,ay]=mm2c(x0-P.sng,y0+rr*P.h),[bx,by]=mm2c(x0+bw+P.sng,y0+rr*P.h);x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();}
   x.restore();
+
   // marcas
   x.lineWidth=1;x.strokeStyle='#191512';
-  marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{x.beginPath();x.moveTo(a*k,b*k);x.lineTo(c2*k,d*k);x.stroke();});
-  // recuadro que muestra dónde está mirando la lupa
-  if(!S.lupa) S.lupa={x:x0,y:y0};
-  const v=ventanaLupa();
-  x.save();x.lineWidth=2;x.strokeStyle='#191512';
-  x.strokeRect((S.lupa.x-v.w/2)*k,(S.lupa.y-v.h/2)*k,v.w*k,v.h*k);
-  x.strokeStyle='#fff';x.lineWidth=1;
-  x.strokeRect((S.lupa.x-v.w/2)*k,(S.lupa.y-v.h/2)*k,v.w*k,v.h*k);
-  x.restore();
-  dibujarLupa();
-}
-
-/* ---------------- lupa ---------------- */
-function anchoLupa(){
-  // Se mide contra el contenedor, no contra el canvas: si se midiera a sí mismo
-  // cada redibujado lo agrandaría y rompería el layout.
-  const c=$('#lupa'), cont=c.parentElement;
-  const w=(cont&&cont.clientWidth?cont.clientWidth-20:300);
-  return Math.max(200,Math.min(560,w));
-}
-function ventanaLupa(){
-  const ancho=anchoLupa();
-  const escala=(96/25.4)*S.zoom;   // mm de hoja -> px de pantalla (1x ≈ tamaño real)
-  return {w:ancho/escala, h:(ancho*0.62)/escala, escala};
-}
-function dibujarLupa(){
-  const P=S.plan; if(!P||P.n<1||!S.art) return;
-  const c=$('#lupa'), v=ventanaLupa();
-  const dpr=Math.min(2,window.devicePixelRatio||1);
-  const anchoCSS=anchoLupa();
-  c.width=Math.round(anchoCSS*dpr); c.height=Math.round(anchoCSS*0.62*dpr);
-  const x=c.getContext('2d');
-  const e=v.escala*dpr;                     // px de canvas por mm
-  x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height);
-  const bw=P.cols*P.w, bh=P.rows*P.h;
-  const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
-  const vx=S.lupa.x-v.w/2, vy=S.lupa.y-v.h/2;   // esquina de la ventana, en mm de hoja
-  const mm2c=(mmx,mmy)=>[(mmx-vx)*e,(mmy-vy)*e];
-  const poner=(img,mx,my,mw,mh)=>{
-    if(!img) return;
-    if(mx>vx+v.w||my>vy+v.h||mx+mw<vx||my+mh<vy) return;
-    const [dx,dy]=mm2c(mx,my);
-    x.drawImage(img,dx,dy,mw*e,mh*e);
-  };
-  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
-  // sangrado
-  if(P.relleno==='color'){
-    x.fillStyle=P.color;
-    const [dx,dy]=mm2c(x0-P.sng,y0-P.sng);
-    x.fillRect(dx,dy,(bw+2*P.sng)*e,(bh+2*P.sng)*e);
-  }else if(S.bandas){
-    for(let cc=0;cc<P.cols;cc++){
-      poner(S.bandas.arriba,x0+cc*P.w,y0-P.sng,P.w,P.sng);
-      poner(S.bandas.abajo ,x0+cc*P.w,y0+bh   ,P.w,P.sng);
-    }
-    for(let rr=0;rr<P.rows;rr++){
-      poner(S.bandas.izq,x0-P.sng,y0+rr*P.h,P.sng,P.h);
-      poner(S.bandas.der,x0+bw   ,y0+rr*P.h,P.sng,P.h);
-    }
-    poner(S.bandas.ai,x0-P.sng,y0-P.sng,P.sng,P.sng);
-    poner(S.bandas.ad,x0+bw   ,y0-P.sng,P.sng,P.sng);
-    poner(S.bandas.bi,x0-P.sng,y0+bh   ,P.sng,P.sng);
-    poner(S.bandas.bd,x0+bw   ,y0+bh   ,P.sng,P.sng);
-  }
-  // piezas
-  for(let cc=0;cc<P.cols;cc++)for(let rr=0;rr<P.rows;rr++)
-    poner(S.art,x0+cc*P.w,y0+rr*P.h,P.w,P.h);
-  // líneas de corte
-  x.save();x.setLineDash([6*dpr,4*dpr]);x.lineWidth=1.5*dpr;x.strokeStyle='#C8006B';
-  for(let cc=0;cc<=P.cols;cc++){const [dx]=mm2c(x0+cc*P.w,0);x.beginPath();x.moveTo(dx,0);x.lineTo(dx,c.height);x.stroke();}
-  for(let rr=0;rr<=P.rows;rr++){const [,dy]=mm2c(0,y0+rr*P.h);x.beginPath();x.moveTo(0,dy);x.lineTo(c.width,dy);x.stroke();}
-  x.restore();
-  // marcas
-  x.strokeStyle='#191512';x.lineWidth=1*dpr;
   marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{const [ax,ay]=mm2c(a,b),[bx,by]=mm2c(c2,d);x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();});
-}
-// mover la lupa arrastrando sobre la vista previa
-function moverLupa(ev){
-  const P=S.plan; if(!P||P.n<1) return;
-  const c=$('#prev'), r=c.getBoundingClientRect();
-  const t=ev.touches?ev.touches[0]:ev;
-  S.lupa={x:(t.clientX-r.left)/r.width*P.hwmm, y:(t.clientY-r.top)/r.height*P.hhmm};
-  dibujar();
 }
 
 // Genera las marcas de corte: arrancan a `sng` de la línea de corte y salen hacia afuera
@@ -719,22 +833,82 @@ function tomarColor(ev){
 $('#cuenta').addEventListener('click',tomarColor);
 $('#cuenta').addEventListener('touchstart',e=>{e.preventDefault();tomarColor(e)},{passive:false});
 $('#file').onchange=e=>{if(e.target.files[0])abrir(e.target.files[0])};
-$('#btnOtra').onclick=()=>{S.lupa=null;S.art=null;S.bandas=null;S.src=null;S.orig=null;S.detect=undefined;S.trim=undefined;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
-['pointerdown','pointermove'].forEach(ev=>$('#prev').addEventListener(ev,e=>{if(e.buttons||e.type==='pointerdown'){e.preventDefault();moverLupa(e)}}));
-$('#prev').addEventListener('touchmove',e=>{e.preventDefault();moverLupa(e)},{passive:false});
-$('#prev').style.touchAction='none';
+$('#btnOtra').onclick=()=>{S.art=null;S.bandas=null;S.src=null;S.orig=null;S.detect=undefined;S.trim=undefined;S.plan=null;S.paso=2;S.subpaso='medida';document.body.classList.remove('pv-open');$('#file').value='';vista('carga');window.scrollTo(0,0)};
 document.querySelectorAll('#chipsPos .chip').forEach(ch=>ch.onclick=()=>{
   document.querySelectorAll('#chipsPos .chip').forEach(o=>o.classList.remove('on'));
   ch.classList.add('on'); calcular();
 });
-document.querySelectorAll('#chipsZoom .chip').forEach(ch=>ch.onclick=()=>{
-  document.querySelectorAll('#chipsPos .chip').forEach(ch=>ch.onclick=()=>{
-  document.querySelectorAll('#chipsPos .chip').forEach(o=>o.classList.remove('on'));
-  ch.classList.add('on'); calcular();
+document.querySelectorAll('.subtab').forEach(b=>b.onclick=()=>subpasoIr(b.dataset.subpaso));
+document.querySelectorAll('.wz-tab').forEach(b=>b.onclick=()=>pasoIr(+b.dataset.paso));
+$('#wzBack').onclick=()=>pasoIr(S.paso-1);
+$('#wzNext').onclick=()=>pasoIr(S.paso+1);
+$('#btnVerPreview').onclick=previewAbrir;
+$('#btnPvClose').onclick=previewCerrar;
+matchMedia('(min-width:880px)').addEventListener('change',e=>{ if(e.matches) document.body.classList.remove('pv-open'); });
+
+/* ---------------- preview: pan (1 dedo) y pinch-zoom (2 dedos) ---------------- */
+let panX0=0, panY0=0, camX0=0, camY0=0;
+let pinchD0=0, pinchK0=0, pinchMM0={x:0,y:0};
+function iniciarPinch(){
+  const [a,b]=[...S.punteros.values()];
+  const c=$('#prev');
+  pinchD0=Math.hypot(a.x-b.x,a.y-b.y)||1;
+  pinchK0=S.cam.k;
+  const midX=(a.x+b.x)/2, midY=(a.y+b.y)/2;
+  pinchMM0={x:S.cam.x+(midX-c._cssW/2)/pinchK0, y:S.cam.y+(midY-c._cssH/2)/pinchK0};
+}
+const prev=$('#prev');
+prev.addEventListener('pointerdown',e=>{
+  if(!S.plan||S.plan.n<1) return;
+  prev.setPointerCapture(e.pointerId);
+  const r=prev.getBoundingClientRect();
+  S.punteros.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
+  if(S.punteros.size===1){
+    const p=[...S.punteros.values()][0];
+    panX0=p.x; panY0=p.y; camX0=S.cam.x; camY0=S.cam.y;
+  } else if(S.punteros.size===2){
+    iniciarPinch();
+  }
 });
-document.querySelectorAll('#chipsZoom .chip').forEach(o=>o.classList.remove('on'));
-  ch.classList.add('on'); S.zoom=+ch.dataset.z; dibujar();
+prev.addEventListener('pointermove',e=>{
+  if(!S.punteros.has(e.pointerId)) return;
+  const r=prev.getBoundingClientRect();
+  S.punteros.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
+  if(S.punteros.size===1){
+    const p=[...S.punteros.values()][0];
+    S.cam.x = camX0 - (p.x-panX0)/S.cam.k;
+    S.cam.y = camY0 - (p.y-panY0)/S.cam.k;
+    clampCamara(); dibujar();
+  } else if(S.punteros.size===2){
+    const [a,b]=[...S.punteros.values()];
+    const c=$('#prev');
+    const d=Math.hypot(a.x-b.x,a.y-b.y)||1;
+    const midX=(a.x+b.x)/2, midY=(a.y+b.y)/2;
+    S.cam.k = Math.max(S.cam.kBase, Math.min(S.cam.kMax, pinchK0*(d/pinchD0)));
+    S.cam.x = pinchMM0.x - (midX-c._cssW/2)/S.cam.k;
+    S.cam.y = pinchMM0.y - (midY-c._cssH/2)/S.cam.k;
+    clampCamara(); dibujar();
+  }
 });
+function soltarPuntero(e){
+  S.punteros.delete(e.pointerId);
+  if(S.punteros.size===1){ // quedó 1 dedo: reanclar el pan desde ahí, sin salto
+    const p=[...S.punteros.values()][0];
+    panX0=p.x; panY0=p.y; camX0=S.cam.x; camY0=S.cam.y;
+  } else if(S.punteros.size===2){
+    iniciarPinch(); // bajó de 3 a 2: reanclar el pinch
+  }
+}
+['pointerup','pointercancel','pointerleave'].forEach(ev=>prev.addEventListener(ev,soltarPuntero));
+prev.addEventListener('wheel',e=>{
+  if(!S.plan||S.plan.n<1) return;
+  e.preventDefault();
+  const r=prev.getBoundingClientRect();
+  zoomEn(e.clientX-r.left, e.clientY-r.top, S.cam.k*Math.exp(-e.deltaY*0.0015));
+},{passive:false});
+$('#zIn').onclick=()=>zoomEn($('#prev')._cssW/2,$('#prev')._cssH/2,S.cam.k*1.35);
+$('#zOut').onclick=()=>zoomEn($('#prev')._cssW/2,$('#prev')._cssH/2,S.cam.k/1.35);
+
 window.addEventListener('resize',dibujar);
 </script>
 </body>
