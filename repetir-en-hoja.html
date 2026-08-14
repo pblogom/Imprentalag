@@ -181,6 +181,7 @@ details[open] summary:after{content:' ▴'}
         <label class="fl">Si la imagen no tiene la proporción justa</label>
         <select id="ajuste">
           <option value="cubrir">Recortar centrado (llena la pieza)</option>
+          <option value="espejar">Entrar entera y completar espejando</option>
           <option value="entrar">Entrar entera (deja blanco a los costados)</option>
         </select>
         <label class="fl">Orientación</label>
@@ -300,6 +301,30 @@ function armarPieza(wmm,hmm,girar,modo){
   if(girar) x.rotate(-Math.PI/2);
   x.drawImage(S.src, girar?-dh/2:-dw/2, girar?-dw/2:-dh/2, girar?dh:dw, girar?dw:dh);
   x.restore();
+  // "Completar espejando": el arte entra entero y el sobrante se rellena
+  // espejando su propio borde, así no se recorta diseño ni queda blanco.
+  if(modo==='espejar'){
+    const ox=Math.round((W-dw)/2), oy=Math.round((H-dh)/2);
+    if(ox>0||oy>0){
+      const aw=Math.round(dw), ah=Math.round(dh);
+      const snap=document.createElement('canvas');snap.width=aw;snap.height=ah;
+      snap.getContext('2d').drawImage(c,ox,oy,aw,ah,0,0,aw,ah);
+      const px=(sx,sy,sw2,sh2,dx,dy,dw2,dh2,fx,fy)=>{
+        if(sw2<=0||sh2<=0||dw2<=0||dh2<=0) return;
+        x.save();x.translate(dx+(fx?dw2:0),dy+(fy?dh2:0));x.scale(fx?-1:1,fy?-1:1);
+        x.drawImage(snap,sx,sy,sw2,sh2,0,0,dw2,dh2);x.restore();
+      };
+      const bx=Math.min(ox,aw), by=Math.min(oy,ah);
+      if(ox>0){ px(0,0,bx,ah, ox-bx,oy,bx,ah, 1,0); px(aw-bx,0,bx,ah, ox+aw,oy,bx,ah, 1,0); }
+      if(oy>0){ px(0,0,aw,by, ox,oy-by,aw,by, 0,1); px(0,ah-by,aw,by, ox,oy+ah,aw,by, 0,1); }
+      if(ox>0&&oy>0){
+        px(0,0,bx,by, ox-bx,oy-by,bx,by, 1,1);
+        px(aw-bx,0,bx,by, ox+aw,oy-by,bx,by, 1,1);
+        px(0,ah-by,bx,by, ox-bx,oy+ah,bx,by, 1,1);
+        px(aw-bx,ah-by,bx,by, ox+aw,oy+ah,bx,by, 1,1);
+      }
+    }
+  }
   return c;
 }
 // Bandas para el sangrado del perímetro: espejadas o estirando el último punto
@@ -392,7 +417,9 @@ function calcular(){
     if(aw>10&&ah>10) av+=`<div class="note ok"><b>Lo mejor: cortarlo a ${aw} × ${ah} mm</b>, que es lo que mide el color del archivo. Así no se pierde nada de diseño ni queda blanco. El volante sale unos milímetros más chico y no se nota.<button onclick="document.querySelector('#pw').value=${aw};document.querySelector('#ph').value=${ah};calcular()">Cortar a ${aw} × ${ah} →</button></div>`;
   }
   if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
-    av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='entrar';calcular()">No perder diseño →</button></div>`;
+    av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`;
+  if(modo==='espejar'&&(pmm.x>0.5||pmm.y>0.5))
+    av+=`<div class="note ok">Entra el diseño completo y el sobrante se completa espejando: <b>${pmm.x.toFixed(1)} mm a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b>. No se pierde diseño ni queda blanco. Revisalo con la lupa por si hay texto pegado al borde.</div>`;
   if(modo==='entrar'&&(pmm.x>0.5||pmm.y>0.5))
     av+=`<div class="note">Así no se pierde nada de diseño, pero queda <b>${pmm.x.toFixed(1)} mm de blanco a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b> dentro de cada volante.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Llegar al borde →</button></div>`;
   if(S.trim) av+=`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`;
