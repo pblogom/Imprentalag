@@ -90,15 +90,17 @@ details[open] summary:after{content:' ▴'}
 .wz-tab.on{color:var(--ink);border-bottom-color:var(--magenta)}
 .wz-tab.on b{background:var(--magenta);color:#fff}
 .wz-panel.hide{display:none}
-.wz-nav{display:flex;gap:8px;position:sticky;bottom:0;background:var(--paper);padding:10px 0 calc(10px + env(safe-area-inset-bottom));margin-top:6px;border-top:1px solid var(--line-2)}
+.wz-foot{position:sticky;bottom:0;background:var(--paper);padding:10px 0 calc(10px + env(safe-area-inset-bottom));margin-top:6px;border-top:1px solid var(--line-2)}
+.wz-preview-btn{margin-top:0;margin-bottom:8px}
+.wz-nav{display:flex;gap:8px}
 .wz-nav .btn{margin-top:0}
 .wz-nav .btn.hide{display:none}
 #wzBack{flex:0 0 auto;width:auto;padding-left:18px;padding-right:18px}
 #wzNext{flex:1}
 
-.subtabs{display:flex;gap:2px;margin:0 0 12px;border-bottom:1px solid var(--line-2)}
-.subtab{flex:1;background:none;border:0;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);padding:9px 4px;cursor:pointer;transition:color .15s ease-out,border-color .15s ease-out}
-.subtab.on{color:var(--ink);border-bottom-color:var(--magenta)}
+.subtabs{display:flex;gap:0;margin:0 0 12px;padding:3px;background:var(--line-2);border-radius:11px}
+.subtab{flex:1;background:none;border:0;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 4px;cursor:pointer;transition:background .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+.subtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(25,21,18,.14)}
 .subpanel.hide{display:none}
 
 .avisos-wrap .avisos-resto{display:none}
@@ -107,10 +109,9 @@ details[open] summary:after{content:' ▴'}
 
 .preview-col{display:none}
 .pv-close{display:none;width:100%;text-align:right;background:none;border:0;padding:6px 0 10px;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer}
-.fab-preview{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:120;background:var(--ink);color:var(--paper-2);border:0;border-radius:999px;padding:13px 18px;font-family:inherit;font-weight:700;font-size:14px;box-shadow:0 4px 18px rgba(25,21,18,.28),0 1px 3px rgba(25,21,18,.4);cursor:pointer;transition:transform .1s ease-out}
-.fab-preview:active{transform:scale(.96)}
 
 @media(max-width:879.98px){
+  .wz-tabs{top:var(--hdh)}
   body.pv-open{overflow:hidden}
   body.pv-open .preview-col{
     display:flex;flex-direction:column;position:fixed;inset:0;z-index:300;
@@ -118,11 +119,10 @@ details[open] summary:after{content:' ▴'}
     overflow-y:auto;
   }
   body.pv-open .pv-close{display:block}
-  body.pv-open .fab-preview{display:none}
 }
 
 @media(min-width:880px){
-  .fab-preview{display:none}
+  .wz-preview-btn{display:none}
   .appgrid{display:grid;grid-template-columns:minmax(380px,1fr) minmax(380px,440px);gap:22px;align-items:start}
   .preview-col{
     display:flex!important;flex-direction:column;position:sticky;top:var(--hdh);
@@ -302,14 +302,15 @@ details[open] summary:after{content:' ▴'}
         <button class="btn btn-s" id="btnOtra">Empezar de nuevo</button>
       </div>
 
-      <div class="wz-nav">
-        <button class="btn btn-s" id="wzBack" type="button">← Atrás</button>
-        <button class="btn btn-p" id="wzNext" type="button">Siguiente →</button>
+      <div class="wz-foot">
+        <button class="btn btn-s wz-preview-btn" id="btnVerPreview" type="button">Ver hoja</button>
+        <div class="wz-nav">
+          <button class="btn btn-s" id="wzBack" type="button">← Atrás</button>
+          <button class="btn btn-p" id="wzNext" type="button">Siguiente →</button>
+        </div>
       </div>
     </div>
   </div>
-
-  <button class="fab-preview" id="btnVerPreview" type="button">👁 Ver hoja</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
