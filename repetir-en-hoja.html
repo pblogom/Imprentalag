@@ -58,6 +58,7 @@ details[open] summary:after{content:' ▴'}
 #file{display:none}
 .stage{background:#EDE7DB;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;min-height:140px}
 #prev{max-width:100%;height:auto;display:block;box-shadow:0 2px 16px rgba(25,21,18,.18)}
+#lupa{width:100%;max-width:100%;height:auto;display:block;border-radius:8px;background:#fff}
 .leg{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
 .leg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--magenta);vertical-align:middle;margin-right:5px}
 .leg b{display:inline-block;width:16px;height:10px;background:#D9CFBB;border:1px solid var(--ink-3);vertical-align:middle;margin-right:5px}
@@ -167,7 +168,7 @@ details[open] summary:after{content:' ▴'}
         </select>
         <div id="wrapColor" class="hide">
           <label class="fl">Tocá la imagen para tomar el color</label>
-          <canvas id="cuenta" style="width:100%;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
+          <canvas id="cuenta" style="width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
           <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
             <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
             <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
@@ -502,8 +503,15 @@ function dibujar(){
 }
 
 /* ---------------- lupa ---------------- */
+function anchoLupa(){
+  // Se mide contra el contenedor, no contra el canvas: si se midiera a sí mismo
+  // cada redibujado lo agrandaría y rompería el layout.
+  const c=$('#lupa'), cont=c.parentElement;
+  const w=(cont&&cont.clientWidth?cont.clientWidth-20:300);
+  return Math.max(200,Math.min(560,w));
+}
 function ventanaLupa(){
-  const c=$('#lupa'), ancho=c.clientWidth||300;
+  const ancho=anchoLupa();
   const escala=(96/25.4)*S.zoom;   // mm de hoja -> px de pantalla (1x ≈ tamaño real)
   return {w:ancho/escala, h:(ancho*0.62)/escala, escala};
 }
@@ -511,7 +519,7 @@ function dibujarLupa(){
   const P=S.plan; if(!P||P.n<1||!S.art) return;
   const c=$('#lupa'), v=ventanaLupa();
   const dpr=Math.min(2,window.devicePixelRatio||1);
-  const anchoCSS=c.clientWidth||300;
+  const anchoCSS=anchoLupa();
   c.width=Math.round(anchoCSS*dpr); c.height=Math.round(anchoCSS*0.62*dpr);
   const x=c.getContext('2d');
   const e=v.escala*dpr;                     // px de canvas por mm
@@ -649,7 +657,8 @@ $('#relleno').onchange=e=>{
 // Cuentagotas: dibuja el arte chiquito y toma el color del punto que toque Claudia
 function pintarCuenta(){
   if(!S.src) return;
-  const c=$('#cuenta'), anchoCSS=c.clientWidth||300;
+  const c=$('#cuenta'), cont=c.parentElement;
+  const anchoCSS=Math.max(200,Math.min(560,(cont&&cont.clientWidth?cont.clientWidth:300)));
   const k=Math.min(1,anchoCSS/S.src.width);
   c.width=Math.round(S.src.width*k); c.height=Math.round(S.src.height*k);
   c.getContext('2d').drawImage(S.src,0,0,c.width,c.height);
