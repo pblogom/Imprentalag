@@ -185,6 +185,12 @@ details[open] summary:after{content:' ▴'}
           <option value="espejar">Entrar entera y completar espejando</option>
           <option value="entrar">Entrar entera (deja blanco a los costados)</option>
         </select>
+        <label class="fl" id="lblPos">Posición del arte</label>
+        <div class="chips" id="chipsPos">
+          <button class="chip on" data-p="centro">Centrado</button>
+          <button class="chip" data-p="inicio" id="posA">Pegado arriba</button>
+          <button class="chip" data-p="fin" id="posB">Pegado abajo</button>
+        </div>
         <label class="fl">Orientación</label>
         <select id="rot">
           <option value="auto">La que entre más copias</option>
@@ -288,46 +294,66 @@ function aplicarTrim(){
 const mm2px=mm=>Math.max(1,Math.round(mm*DPI/25.4));
 
 // Dibuja el arte dentro de una pieza de wmm x hmm, recortando o entrando entero
-function armarPieza(wmm,hmm,girar,modo){
+function armarPieza(wmm,hmm,girar,modo,relleno,pos){
+  relleno=relleno||'espejo'; pos=pos||'centro';
   const W=mm2px(wmm),H=mm2px(hmm);
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const x=c.getContext('2d');
   x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
-  x.fillStyle='#fff';x.fillRect(0,0,W,H);
+  // Con relleno de color liso alcanza con pintar todo antes: lo que sobre queda del color.
+  x.fillStyle=(modo==='espejar'&&relleno==='color')?($('#colorIn').value||'#ffffff'):'#fff';
+  x.fillRect(0,0,W,H);
   const sw=girar?S.src.height:S.src.width, sh=girar?S.src.width:S.src.height;
   const k=modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
   const dw=sw*k, dh=sh*k;
+  // Dónde apoya el arte dentro de la pieza. Solo cambia algo en el eje donde sobra o falta.
+  const ubicar=(libre)=>pos==='inicio'?0:pos==='fin'?libre:libre/2;
+  const ox=ubicar(W-dw), oy=ubicar(H-dh);
   x.save();
-  x.translate(W/2,H/2);
+  x.translate(ox+dw/2, oy+dh/2);
   if(girar) x.rotate(-Math.PI/2);
   x.drawImage(S.src, girar?-dh/2:-dw/2, girar?-dw/2:-dh/2, girar?dh:dw, girar?dw:dh);
   x.restore();
-  // "Completar espejando": el arte entra entero y el sobrante se rellena
-  // espejando su propio borde, así no se recorta diseño ni queda blanco.
-  if(modo==='espejar'){
-    const ox=Math.round((W-dw)/2), oy=Math.round((H-dh)/2);
-    if(ox>0||oy>0){
-      const aw=Math.round(dw), ah=Math.round(dh);
-      const snap=document.createElement('canvas');snap.width=aw;snap.height=ah;
-      snap.getContext('2d').drawImage(c,ox,oy,aw,ah,0,0,aw,ah);
-      const px=(sx,sy,sw2,sh2,dx,dy,dw2,dh2,fx,fy)=>{
-        if(sw2<=0||sh2<=0||dw2<=0||dh2<=0) return;
-        x.save();x.translate(dx+(fx?dw2:0),dy+(fy?dh2:0));x.scale(fx?-1:1,fy?-1:1);
-        x.drawImage(snap,sx,sy,sw2,sh2,0,0,dw2,dh2);x.restore();
-      };
-      const bx=Math.min(ox,aw), by=Math.min(oy,ah);
-      if(ox>0){ px(0,0,bx,ah, ox-bx,oy,bx,ah, 1,0); px(aw-bx,0,bx,ah, ox+aw,oy,bx,ah, 1,0); }
-      if(oy>0){ px(0,0,aw,by, ox,oy-by,aw,by, 0,1); px(0,ah-by,aw,by, ox,oy+ah,aw,by, 0,1); }
-      if(ox>0&&oy>0){
-        px(0,0,bx,by, ox-bx,oy-by,bx,by, 1,1);
-        px(aw-bx,0,bx,by, ox+aw,oy-by,bx,by, 1,1);
-        px(0,ah-by,bx,by, ox-bx,oy+ah,bx,by, 1,1);
-        px(aw-bx,ah-by,bx,by, ox+aw,oy+ah,bx,by, 1,1);
-      }
-    }
+  // "Completar espejando": el arte entra entero y lo que sobra se rellena
+  // con el mismo criterio elegido para el borde de afuera.
+  if(modo==='espejar'&&relleno!=='color'){
+    completar(x,c,Math.round(ox),Math.round(oy),Math.round(dw),Math.round(dh),W,H,relleno);
   }
   return c;
 }
+// Rellena lo que sobra alrededor del arte: espejando su borde o estirando el último punto.
+// Si el sobrante es más ancho que el propio arte, no se puede espejar y estira.
+function completar(x,c,ox,oy,aw,ah,W,H,relleno){
+  const ml=ox, mt=oy, mr=W-ox-aw, mb=H-oy-ah;
+  if(ml<=0&&mt<=0&&mr<=0&&mb<=0) return;
+  const snap=document.createElement('canvas');snap.width=aw;snap.height=ah;
+  snap.getContext('2d').drawImage(c,ox,oy,aw,ah,0,0,aw,ah);
+  const put=(sx,sy,sw,sh,dx,dy,dw,dh,fx,fy)=>{
+    if(sw<=0||sh<=0||dw<=0||dh<=0) return;
+    x.save();x.translate(dx+(fx?dw:0),dy+(fy?dh:0));x.scale(fx?-1:1,fy?-1:1);
+    x.drawImage(snap,sx,sy,sw,sh,0,0,dw,dh);x.restore();
+  };
+  const e=relleno==='estira';
+  // costados
+  if(ml>0){ const b=e?1:Math.min(ml,aw);
+    if(e) put(0,0,1,ah, 0,oy,ml,ah, 0,0);
+    else { put(0,0,b,ah, ox-b,oy,b,ah, 1,0); if(ml>b) put(0,0,1,ah, 0,oy,ml-b,ah, 0,0); } }
+  if(mr>0){ const b=e?1:Math.min(mr,aw);
+    if(e) put(aw-1,0,1,ah, ox+aw,oy,mr,ah, 0,0);
+    else { put(aw-b,0,b,ah, ox+aw,oy,b,ah, 1,0); if(mr>b) put(aw-1,0,1,ah, ox+aw+b,oy,mr-b,ah, 0,0); } }
+  // arriba y abajo
+  if(mt>0){ const b=e?1:Math.min(mt,ah);
+    if(e) put(0,0,aw,1, ox,0,aw,mt, 0,0);
+    else { put(0,0,aw,b, ox,oy-b,aw,b, 0,1); if(mt>b) put(0,0,aw,1, ox,0,aw,mt-b, 0,0); } }
+  if(mb>0){ const b=e?1:Math.min(mb,ah);
+    if(e) put(0,ah-1,aw,1, ox,oy+ah,aw,mb, 0,0);
+    else { put(0,ah-b,aw,b, ox,oy+ah,aw,b, 0,1); if(mb>b) put(0,ah-1,aw,1, ox,oy+ah+b,aw,mb-b, 0,0); } }
+  // esquinas: se estiran desde el punto de la punta, no se nota y evita repeticiones raras
+  const esq=(sx,sy,dx,dy,dw,dh)=>{if(dw>0&&dh>0) put(sx,sy,1,1,dx,dy,dw,dh,0,0)};
+  esq(0,0, 0,0, ml,mt); esq(aw-1,0, ox+aw,0, mr,mt);
+  esq(0,ah-1, 0,oy+ah, ml,mb); esq(aw-1,ah-1, ox+aw,oy+ah, mr,mb);
+}
+
 // Bandas para el sangrado del perímetro: espejadas o estirando el último punto
 function banda(art,lado,bpx,modo){
   const W=art.width,H=art.height,e=modo==='estira';
@@ -357,6 +383,7 @@ function calcular(){
   if(hs==='libre'){hwmm=num('#hw',325);hhmm=num('#hh',475);}
   else{const p=hs.split(',');hwmm=+p[0];hhmm=+p[1];}
   const mrg=num("#mrg",4), sng=num('#sng',5), modo=$('#ajuste').value, rotMod=$('#rot').value;
+  const pos=(document.querySelector('#chipsPos .chip.on')||{dataset:{}}).dataset.p||'centro';
   // espacio libre para el bloque: hoja - margen - (sangrado + marca) de cada lado
   const afuera=sng+MARCA;
   const dispW=hwmm-2*mrg-2*afuera, dispH=hhmm-2*mrg-2*afuera;
@@ -369,7 +396,7 @@ function calcular(){
     const n=cols*rows;
     if(!mejor||n>mejor.n) mejor={...o,cols,rows,n};
   });
-  S.plan={pwmm,phmm,hwmm,hhmm,mrg,sng,modo,relleno,color:$('#colorIn').value,...mejor,dispW,dispH};
+  S.plan={pwmm,phmm,hwmm,hhmm,mrg,sng,modo,relleno,pos,color:$('#colorIn').value,...mejor,dispW,dispH};
 
   if(!mejor||mejor.n<1){
     $('#cant').textContent='0';
@@ -419,8 +446,23 @@ function calcular(){
   }
   if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
     av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`;
-  if(modo==='espejar'&&(pmm.x>0.5||pmm.y>0.5))
-    av+=`<div class="note ok">Entra el diseño completo y el sobrante se completa espejando: <b>${pmm.x.toFixed(1)} mm a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b>. No se pierde diseño ni queda blanco. Revisalo con la lupa por si hay texto pegado al borde.</div>`;
+  // las opciones de posición se nombran según dónde sobra espacio
+  const ejeV=pmm.y>=pmm.x;
+  $('#lblPos').textContent = (pmm.x>0.5||pmm.y>0.5)
+    ? (ejeV?'Posición del arte (sobra arriba y abajo)':'Posición del arte (sobra a los costados)')
+    : 'Posición del arte';
+  $('#posA').textContent = ejeV?'Pegado arriba':'Pegado a la izquierda';
+  $('#posB').textContent = ejeV?'Pegado abajo':'Pegado a la derecha';
+  if(modo==='espejar'&&(pmm.x>0.5||pmm.y>0.5)){
+    const sobra=Math.max(pmm.x,pmm.y);
+    const qué = relleno==='color'?'con el color elegido':relleno==='estira'?'estirando el borde':'espejando';
+    if(sobra>10)
+      av+=`<div class="note"><b>Sobra bastante: ${sobra.toFixed(1)} mm por lado.</b> Rellenar tanto se va a notar. Fijate con la lupa y, si no convence, probá recortar diseño o un color liso.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Recortar diseño →</button><button onclick="document.querySelector('#relleno').value='color';document.querySelector('#wrapColor').classList.remove('hide');pintarCuenta();calcular()">Usar color liso →</button></div>`;
+    else if(sobra>4&&relleno==='espejo')
+      av+=`<div class="note">Se rellenan <b>${sobra.toFixed(1)} mm</b> espejando. Si cerca de ese borde hay texto o un logo, va a aparecer repetido al revés. Miralo con la lupa.<button onclick="document.querySelector('#relleno').value='estira';calcular()">Estirar en vez de espejar →</button></div>`;
+    else
+      av+=`<div class="note ok">Entra el diseño completo y el sobrante se rellena ${qué}: <b>${pmm.x.toFixed(1)} mm a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b>. No se pierde diseño ni queda blanco. Revisalo con la lupa por si hay texto pegado al borde.</div>`;
+  }
   if(modo==='entrar'&&(pmm.x>0.5||pmm.y>0.5))
     av+=`<div class="note">Así no se pierde nada de diseño, pero queda <b>${pmm.x.toFixed(1)} mm de blanco a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b> dentro de cada volante.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Llegar al borde →</button></div>`;
   if(S.trim) av+=`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`;
@@ -430,7 +472,7 @@ function calcular(){
     if(Math.abs(arte-mejor.w/mejor.h)>0.06) av+=`<div class="note">La proporción del archivo no coincide con ${mejor.w}×${mejor.h} mm, así que se recorta un poco por los costados. Mirá la vista previa antes de mandar.</div>`;
   }
   // arte y bandas se calculan una sola vez por config (los usa la vista, la lupa y el PDF)
-  S.art=armarPieza(mejor.w,mejor.h,mejor.girar,modo);
+  S.art=armarPieza(mejor.w,mejor.h,mejor.girar,modo,relleno,pos);
   S.bandas=null;
   if(relleno!=='color'){
     const bpx=mm2px(sng); S.bandas={};
@@ -681,8 +723,16 @@ $('#btnOtra').onclick=()=>{S.lupa=null;S.art=null;S.bandas=null;S.src=null;S.ori
 ['pointerdown','pointermove'].forEach(ev=>$('#prev').addEventListener(ev,e=>{if(e.buttons||e.type==='pointerdown'){e.preventDefault();moverLupa(e)}}));
 $('#prev').addEventListener('touchmove',e=>{e.preventDefault();moverLupa(e)},{passive:false});
 $('#prev').style.touchAction='none';
+document.querySelectorAll('#chipsPos .chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('#chipsPos .chip').forEach(o=>o.classList.remove('on'));
+  ch.classList.add('on'); calcular();
+});
 document.querySelectorAll('#chipsZoom .chip').forEach(ch=>ch.onclick=()=>{
-  document.querySelectorAll('#chipsZoom .chip').forEach(o=>o.classList.remove('on'));
+  document.querySelectorAll('#chipsPos .chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('#chipsPos .chip').forEach(o=>o.classList.remove('on'));
+  ch.classList.add('on'); calcular();
+});
+document.querySelectorAll('#chipsZoom .chip').forEach(o=>o.classList.remove('on'));
   ch.classList.add('on'); S.zoom=+ch.dataset.z; dibujar();
 });
 window.addEventListener('resize',dibujar);
