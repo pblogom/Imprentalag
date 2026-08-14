@@ -135,6 +135,16 @@ details[open] summary:after{content:' ▴'}
       <p class="card-t">Así queda la hoja</p>
       <div class="stage"><canvas id="prev"></canvas></div>
       <div class="leg"><span><i></i>Por acá corta Mingo</span><span><b></b>Sangrado</span></div>
+      <div id="lupaBox">
+        <p class="card-t" style="margin:18px 0 8px">Mirá de cerca antes de bajarlo</p>
+        <div class="stage" style="padding:10px"><canvas id="lupa"></canvas></div>
+        <div class="chips" style="margin-top:10px" id="chipsZoom">
+          <button class="chip on" data-z="1">Tamaño real</button>
+          <button class="chip" data-z="2">Doble</button>
+          <button class="chip" data-z="4">Cuádruple</button>
+        </div>
+        <div style="font-size:13px;color:var(--ink-3);margin-top:8px">Arrastrá el dedo sobre la hoja de arriba para mover la lupa. Fijate sobre todo en los bordes de afuera y en las esquinas.</div>
+      </div>
     </div>
 
     <div id="avisos"></div>
@@ -191,7 +201,7 @@ details[open] summary:after{content:' ▴'}
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=s=>document.querySelector(s);
 const DPI=300, MARCA=3;               // largo de la marca de corte, en mm
-const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null};
+const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null,art:null,bandas:null,pdfW:0,pdfH:0,lupa:null,zoom:1};
 
 function vista(v){
   $('#vCarga').classList.toggle('hide',v!=='carga');
@@ -210,8 +220,9 @@ async function abrir(f){
   S.nombre=(f.name||'volante').replace(/\.[^.]+$/,'');
   vista('busy');
   try{
+    S.pdfW=0;S.pdfH=0;
     if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await abrirPdf(f); else await abrirImg(f);
-    vista('res'); calcular(); if($('#relleno').value==='color') pintarCuenta();
+    S.lupa=null; vista('res'); calcular(); if($('#relleno').value==='color') pintarCuenta();
   }catch(e){ console.error(e); alert('No se pudo abrir el archivo. Probá con un JPG o un PNG.'); vista('carga'); }
 }
 function abrirImg(f){return new Promise((ok,mal)=>{
@@ -224,7 +235,10 @@ function abrirImg(f){return new Promise((ok,mal)=>{
 async function abrirPdf(f){
   $('#busyTxt').textContent='Procesando el PDF…';
   const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
-  const page=await pdf.getPage(1), vp=page.getViewport({scale:DPI/72});
+  const page=await pdf.getPage(1);
+  const v1=page.getViewport({scale:1});
+  S.pdfW=v1.width*25.4/72; S.pdfH=v1.height*25.4/72;
+  const vp=page.getViewport({scale:DPI/72});
   const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
   await page.render({canvasContext:x,viewport:vp}).promise;
@@ -363,14 +377,44 @@ function calcular(){
     if(n>mejor.n){sug={m,n};break;}
   }
   if(sug) av+=`<div class="note"><b>Con ${sug.m} mm de margen entrarían ${sug.n}</b> en vez de ${mejor.n}. Fijate hasta dónde puede imprimir la máquina antes de bajarlo.<button onclick="document.querySelector('#mrg').value=${sug.m};calcular()">Probar con ${sug.m} mm →</button></div>`;
+  const pmm=(()=>{const sw=mejor.girar?S.src.height:S.src.width, sh=mejor.girar?S.src.width:S.src.height;
+    const W=mm2px(mejor.w),H=mm2px(mejor.h);
+    const k=modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
+    return {x:Math.abs(sw*k-W)/2*(mejor.w/W), y:Math.abs(sh*k-H)/2*(mejor.h/H)};})();
+  if(S.pdfW>0){
+    const r=v=>Math.abs(v-Math.round(v))<0.4?Math.round(v):Math.round(v*10)/10;
+    const pw2=r(S.pdfW), ph2=r(S.pdfH);
+    if(Math.abs(pw2-pwmm)>0.5||Math.abs(ph2-phmm)>0.5)
+      av+=`<div class="note">El PDF mide <b>${pw2} × ${ph2} mm</b>. ¿Es esa la medida del volante?<button onclick="document.querySelector('#pw').value=${pw2};document.querySelector('#ph').value=${ph2};calcular()">Usar esa medida →</button></div>`;
+  }
+  if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
+    av+=`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='entrar';calcular()">No perder diseño →</button></div>`;
+  if(modo==='entrar'&&(pmm.x>0.5||pmm.y>0.5))
+    av+=`<div class="note">Así no se pierde nada de diseño, pero queda <b>${pmm.x.toFixed(1)} mm de blanco a los costados y ${pmm.y.toFixed(1)} mm arriba y abajo</b> dentro de cada volante.<button onclick="document.querySelector('#ajuste').value='cubrir';calcular()">Llegar al borde →</button></div>`;
   if(S.trim) av+=`<div class="note ok">Le saqué el borde blanco que traía el archivo: quedó en ${S.trim.w}×${S.trim.h} px. Así los volantes quedan pegados de verdad.<button onclick="document.querySelector('#trim').value='no';calcular()">Dejarlo como vino →</button></div>`;
   if(dpiReal2<150) av+=`<div class="note"><b>La imagen es chica.</b> A ${mejor.w}×${mejor.h} mm queda en ${Math.round(dpiReal2)} dpi. Va a salir borrosa. Pedile al cliente el archivo más grande.</div>`;
   if(modo==='cubrir'){
     const arte=(mejor.girar?S.src.height:S.src.width)/(mejor.girar?S.src.width:S.src.height);
     if(Math.abs(arte-mejor.w/mejor.h)>0.06) av+=`<div class="note">La proporción del archivo no coincide con ${mejor.w}×${mejor.h} mm, así que se recorta un poco por los costados. Mirá la vista previa antes de mandar.</div>`;
   }
+  // arte y bandas se calculan una sola vez por config (los usa la vista, la lupa y el PDF)
+  S.art=armarPieza(mejor.w,mejor.h,mejor.girar,modo);
+  S.bandas=null;
+  if(relleno!=='color'){
+    const bpx=mm2px(sng); S.bandas={};
+    ['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>S.bandas[l]=banda(S.art,l,bpx,relleno));
+  }
   $('#avisos').innerHTML=av;
   dibujar();
+}
+
+// Cuánto diseño real se pierde (o cuánto blanco queda) al ajustar la proporción
+function perdida(P){
+  const sw=P.girar?S.src.height:S.src.width, sh=P.girar?S.src.width:S.src.height;
+  const W=mm2px(P.w), H=mm2px(P.h);
+  const k=P.modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
+  const dw=sw*k, dh=sh*k, esc=P.w/W;
+  return {x:Math.abs(dw-W)/2*esc, y:Math.abs(dh-H)/2*esc};
 }
 
 /* ---------------- vista previa ---------------- */
@@ -384,14 +428,13 @@ function dibujar(){
   x.fillStyle='#fff';x.fillRect(0,0,p.width,p.height);
   const bw=P.cols*P.w, bh=P.rows*P.h;
   const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
-  const art=armarPieza(P.w,P.h,P.girar,P.modo);
+  const art=S.art;
   // sangrado del perímetro, tal cual va a salir
   if(P.relleno==='color'){
     x.fillStyle=P.color;
     x.fillRect((x0-P.sng)*k,(y0-P.sng)*k,(bw+2*P.sng)*k,(bh+2*P.sng)*k);
   }else{
-    const bpx=mm2px(P.sng), B={};
-    ['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=banda(art,l,bpx,P.relleno));
+    const B=S.bandas;
     for(let c=0;c<P.cols;c++){
       x.drawImage(B.arriba,(x0+c*P.w)*k,(y0-P.sng)*k,P.w*k,P.sng*k);
       x.drawImage(B.abajo ,(x0+c*P.w)*k,(y0+bh)*k   ,P.w*k,P.sng*k);
@@ -416,6 +459,81 @@ function dibujar(){
   // marcas
   x.lineWidth=1;x.strokeStyle='#191512';
   marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{x.beginPath();x.moveTo(a*k,b*k);x.lineTo(c2*k,d*k);x.stroke();});
+  // recuadro que muestra dónde está mirando la lupa
+  if(!S.lupa) S.lupa={x:x0,y:y0};
+  const v=ventanaLupa();
+  x.save();x.lineWidth=2;x.strokeStyle='#191512';
+  x.strokeRect((S.lupa.x-v.w/2)*k,(S.lupa.y-v.h/2)*k,v.w*k,v.h*k);
+  x.strokeStyle='#fff';x.lineWidth=1;
+  x.strokeRect((S.lupa.x-v.w/2)*k,(S.lupa.y-v.h/2)*k,v.w*k,v.h*k);
+  x.restore();
+  dibujarLupa();
+}
+
+/* ---------------- lupa ---------------- */
+function ventanaLupa(){
+  const c=$('#lupa'), ancho=c.clientWidth||300;
+  const escala=(96/25.4)*S.zoom;   // mm de hoja -> px de pantalla (1x ≈ tamaño real)
+  return {w:ancho/escala, h:(ancho*0.62)/escala, escala};
+}
+function dibujarLupa(){
+  const P=S.plan; if(!P||P.n<1||!S.art) return;
+  const c=$('#lupa'), v=ventanaLupa();
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const anchoCSS=c.clientWidth||300;
+  c.width=Math.round(anchoCSS*dpr); c.height=Math.round(anchoCSS*0.62*dpr);
+  const x=c.getContext('2d');
+  const e=v.escala*dpr;                     // px de canvas por mm
+  x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height);
+  const bw=P.cols*P.w, bh=P.rows*P.h;
+  const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
+  const vx=S.lupa.x-v.w/2, vy=S.lupa.y-v.h/2;   // esquina de la ventana, en mm de hoja
+  const mm2c=(mmx,mmy)=>[(mmx-vx)*e,(mmy-vy)*e];
+  const poner=(img,mx,my,mw,mh)=>{
+    if(!img) return;
+    if(mx>vx+v.w||my>vy+v.h||mx+mw<vx||my+mh<vy) return;
+    const [dx,dy]=mm2c(mx,my);
+    x.drawImage(img,dx,dy,mw*e,mh*e);
+  };
+  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  // sangrado
+  if(P.relleno==='color'){
+    x.fillStyle=P.color;
+    const [dx,dy]=mm2c(x0-P.sng,y0-P.sng);
+    x.fillRect(dx,dy,(bw+2*P.sng)*e,(bh+2*P.sng)*e);
+  }else if(S.bandas){
+    for(let cc=0;cc<P.cols;cc++){
+      poner(S.bandas.arriba,x0+cc*P.w,y0-P.sng,P.w,P.sng);
+      poner(S.bandas.abajo ,x0+cc*P.w,y0+bh   ,P.w,P.sng);
+    }
+    for(let rr=0;rr<P.rows;rr++){
+      poner(S.bandas.izq,x0-P.sng,y0+rr*P.h,P.sng,P.h);
+      poner(S.bandas.der,x0+bw   ,y0+rr*P.h,P.sng,P.h);
+    }
+    poner(S.bandas.ai,x0-P.sng,y0-P.sng,P.sng,P.sng);
+    poner(S.bandas.ad,x0+bw   ,y0-P.sng,P.sng,P.sng);
+    poner(S.bandas.bi,x0-P.sng,y0+bh   ,P.sng,P.sng);
+    poner(S.bandas.bd,x0+bw   ,y0+bh   ,P.sng,P.sng);
+  }
+  // piezas
+  for(let cc=0;cc<P.cols;cc++)for(let rr=0;rr<P.rows;rr++)
+    poner(S.art,x0+cc*P.w,y0+rr*P.h,P.w,P.h);
+  // líneas de corte
+  x.save();x.setLineDash([6*dpr,4*dpr]);x.lineWidth=1.5*dpr;x.strokeStyle='#C8006B';
+  for(let cc=0;cc<=P.cols;cc++){const [dx]=mm2c(x0+cc*P.w,0);x.beginPath();x.moveTo(dx,0);x.lineTo(dx,c.height);x.stroke();}
+  for(let rr=0;rr<=P.rows;rr++){const [,dy]=mm2c(0,y0+rr*P.h);x.beginPath();x.moveTo(0,dy);x.lineTo(c.width,dy);x.stroke();}
+  x.restore();
+  // marcas
+  x.strokeStyle='#191512';x.lineWidth=1*dpr;
+  marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{const [ax,ay]=mm2c(a,b),[bx,by]=mm2c(c2,d);x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();});
+}
+// mover la lupa arrastrando sobre la vista previa
+function moverLupa(ev){
+  const P=S.plan; if(!P||P.n<1) return;
+  const c=$('#prev'), r=c.getBoundingClientRect();
+  const t=ev.touches?ev.touches[0]:ev;
+  S.lupa={x:(t.clientX-r.left)/r.width*P.hwmm, y:(t.clientY-r.top)/r.height*P.hhmm};
+  dibujar();
 }
 
 // Genera las marcas de corte: arrancan a `sng` de la línea de corte y salen hacia afuera
@@ -442,7 +560,7 @@ $('#btnPdf').onclick=()=>{
       const doc=new jsPDF({unit:'mm',format:[P.hwmm,P.hhmm],orientation:P.hwmm>P.hhmm?'landscape':'portrait',compress:true});
       const bw=P.cols*P.w, bh=P.rows*P.h;
       const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2;
-      const art=armarPieza(P.w,P.h,P.girar,P.modo);
+      const art=S.art;
       const bpx=mm2px(P.sng);
       const jpg=c=>c.toDataURL('image/jpeg',0.92);
       // sangrado del perímetro (se dibuja primero, queda abajo)
@@ -451,7 +569,7 @@ $('#btnPdf').onclick=()=>{
         doc.setFillColor(parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16));
         doc.rect(x0-P.sng,y0-P.sng,bw+2*P.sng,bh+2*P.sng,'F');
       }else{
-      const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(banda(art,l,bpx,P.relleno)));
+      const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(S.bandas[l]));
       for(let c=0;c<P.cols;c++){
         doc.addImage(B.arriba,'JPEG',x0+c*P.w,y0-P.sng,P.w,P.sng,'ba','FAST');
         doc.addImage(B.abajo ,'JPEG',x0+c*P.w,y0+bh   ,P.w,P.sng,'bb','FAST');
@@ -519,7 +637,14 @@ function tomarColor(ev){
 $('#cuenta').addEventListener('click',tomarColor);
 $('#cuenta').addEventListener('touchstart',e=>{e.preventDefault();tomarColor(e)},{passive:false});
 $('#file').onchange=e=>{if(e.target.files[0])abrir(e.target.files[0])};
-$('#btnOtra').onclick=()=>{S.src=null;S.orig=null;S.detect=undefined;S.trim=undefined;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
+$('#btnOtra').onclick=()=>{S.lupa=null;S.art=null;S.bandas=null;S.src=null;S.orig=null;S.detect=undefined;S.trim=undefined;S.plan=null;$('#file').value='';vista('carga');window.scrollTo(0,0)};
+['pointerdown','pointermove'].forEach(ev=>$('#prev').addEventListener(ev,e=>{if(e.buttons||e.type==='pointerdown'){e.preventDefault();moverLupa(e)}}));
+$('#prev').addEventListener('touchmove',e=>{e.preventDefault();moverLupa(e)},{passive:false});
+$('#prev').style.touchAction='none';
+document.querySelectorAll('#chipsZoom .chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('#chipsZoom .chip').forEach(o=>o.classList.remove('on'));
+  ch.classList.add('on'); S.zoom=+ch.dataset.z; dibujar();
+});
 window.addEventListener('resize',dibujar);
 </script>
 </body>
