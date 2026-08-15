@@ -15,6 +15,7 @@
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:16px;line-height:1.45}
 .wrap{max-width:640px;margin:0 auto;padding:0 16px 70px}
+body.trabajando header{display:none}
 header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line);padding:6px 16px}
 .hd-inner{max-width:640px;margin:0 auto;display:flex;align-items:baseline;gap:8px}
 .hd-inner h1{font-size:15px;font-weight:800;letter-spacing:-.02em;margin:0}
@@ -173,7 +174,6 @@ body.pv-open .pv-close{display:block!important}
 
     <div class="preview-col">
       <button class="pv-close" id="btnPvClose" type="button">✕ Cerrar</button>
-      <p class="card-t">Así queda la hoja</p>
       <div class="stage" id="stage">
         <canvas id="prev"></canvas>
         <div class="pv-bar h" id="barH"><div class="th" id="thH"></div></div>
@@ -183,10 +183,6 @@ body.pv-open .pv-close{display:block!important}
           <button id="zIn" type="button" aria-label="Acercar">+</button>
           <button id="zOut" type="button" aria-label="Alejar">−</button>
         </div>
-      </div>
-      <div class="leg">
-        <span><i></i>Por acá corta Mingo</span><span><b></b>Sangrado</span>
-        <span class="leg-hint">Pellizcá o girá la rueda para acercar · arrastrá para mover</span>
       </div>
     </div>
 
@@ -340,11 +336,18 @@ function vista(v){
   $('#vApp').classList.toggle('hide',v!=='app');
   // la .wrap seguía ocupando su padding aunque no tuviera nada adentro
   $('.wrap').classList.toggle('hide', v==='app');
+  document.body.classList.toggle('trabajando', v==='app');
+  medirHeader();
 }
 const num=(id,def)=>{const v=parseFloat($(id).value);return isNaN(v)||v<=0?def:v};
 
 /* ---------------- navegación del wizard ---------------- */
-function medirHeader(){ document.documentElement.style.setProperty('--hdh', ($('header').offsetHeight||52)+'px'); }
+function medirHeader(){
+  const h=$('header');
+  // con el header oculto, offsetHeight es 0 y offsetParent null: hay que tomarlo como 0 real
+  const alto = (h && h.offsetParent!==null) ? h.offsetHeight : 0;
+  document.documentElement.style.setProperty('--hdh', alto+'px');
+}
 medirHeader(); window.addEventListener('resize', medirHeader);
 
 function subpasoIr(n){
@@ -747,7 +750,12 @@ function dibujar(){
 
   const bw=P.cols*P.w, bh=P.rows*P.h;
   const x0=(P.hwmm-bw)/2, y0=(P.hhmm-bh)/2, art=S.art, k=S.cam.k;
-  const rect=(mx,my,mw,mh,img)=>{ const [dx,dy]=mm2c(mx,my); if(img) x.drawImage(img,dx,dy,mw*k,mh*k); };
+  // Cada pieza y cada banda se dibujan un pelo más grandes de lo que miden, para que
+  // se pisen entre sí. Si se dibujan justas, en coordenadas con decimales queda una
+  // rendija de menos de un píxel y se ve el blanco de la hoja de atrás: esa es la
+  // "línea" que aparecía al espejar.
+  const OV=0.6;
+  const rect=(mx,my,mw,mh,img)=>{ const [dx,dy]=mm2c(mx,my); if(img) x.drawImage(img,dx-OV,dy-OV,mw*k+2*OV,mh*k+2*OV); };
 
   x.fillStyle='#fff';
   const [hx0,hy0]=mm2c(0,0);
@@ -867,6 +875,7 @@ $('#btnPdf').onclick=()=>{
       const art=S.art;
       const bpx=mm2px(P.sng);
       const jpg=c=>c.toDataURL('image/jpeg',0.92);
+      const OVmm=0.08;   // mismo solape, en milímetros, para que ningún visor muestre juntura
       // sangrado del perímetro (se dibuja primero, queda abajo)
       if(P.relleno==='color'){
         const h=P.color.replace('#','');
@@ -875,22 +884,22 @@ $('#btnPdf').onclick=()=>{
       }else{
       const B={};['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>B[l]=jpg(S.bandas[l]));
       for(let c=0;c<P.cols;c++){
-        doc.addImage(B.arriba,'JPEG',x0+c*P.w,y0-P.sng,P.w,P.sng,'ba','FAST');
-        doc.addImage(B.abajo ,'JPEG',x0+c*P.w,y0+bh   ,P.w,P.sng,'bb','FAST');
+        doc.addImage(B.arriba,'JPEG',x0+c*P.w-OVmm,y0-P.sng-OVmm,P.w+2*OVmm,P.sng+2*OVmm,'ba','FAST');
+        doc.addImage(B.abajo ,'JPEG',x0+c*P.w-OVmm,y0+bh-OVmm,P.w+2*OVmm,P.sng+2*OVmm,'bb','FAST');
       }
       for(let r=0;r<P.rows;r++){
-        doc.addImage(B.izq,'JPEG',x0-P.sng,y0+r*P.h,P.sng,P.h,'bi','FAST');
-        doc.addImage(B.der,'JPEG',x0+bw   ,y0+r*P.h,P.sng,P.h,'bd','FAST');
+        doc.addImage(B.izq,'JPEG',x0-P.sng-OVmm,y0+r*P.h-OVmm,P.sng+2*OVmm,P.h+2*OVmm,'bi','FAST');
+        doc.addImage(B.der,'JPEG',x0+bw   -OVmm,y0+r*P.h-OVmm,P.sng+2*OVmm,P.h+2*OVmm,'bd','FAST');
       }
-      doc.addImage(B.ai,'JPEG',x0-P.sng,y0-P.sng,P.sng,P.sng,'ca','FAST');
-      doc.addImage(B.ad,'JPEG',x0+bw   ,y0-P.sng,P.sng,P.sng,'cb','FAST');
-      doc.addImage(B.bi,'JPEG',x0-P.sng,y0+bh   ,P.sng,P.sng,'cc','FAST');
-      doc.addImage(B.bd,'JPEG',x0+bw   ,y0+bh   ,P.sng,P.sng,'cd','FAST');
+      doc.addImage(B.ai,'JPEG',x0-P.sng-OVmm,y0-P.sng-OVmm,P.sng+2*OVmm,P.sng+2*OVmm,'ca','FAST');
+      doc.addImage(B.ad,'JPEG',x0+bw   -OVmm,y0-P.sng-OVmm,P.sng+2*OVmm,P.sng+2*OVmm,'cb','FAST');
+      doc.addImage(B.bi,'JPEG',x0-P.sng-OVmm,y0+bh   -OVmm,P.sng+2*OVmm,P.sng+2*OVmm,'cc','FAST');
+      doc.addImage(B.bd,'JPEG',x0+bw   -OVmm,y0+bh   -OVmm,P.sng+2*OVmm,P.sng+2*OVmm,'cd','FAST');
       }
       // las piezas
       const A=jpg(art);
       for(let c=0;c<P.cols;c++)for(let r=0;r<P.rows;r++)
-        doc.addImage(A,'JPEG',x0+c*P.w,y0+r*P.h,P.w,P.h,'art','FAST');
+        doc.addImage(A,'JPEG',x0+c*P.w-OVmm,y0+r*P.h-OVmm,P.w+2*OVmm,P.h+2*OVmm,'art','FAST');
       // marcas de corte, vectoriales
       doc.setDrawColor(0,0,0); doc.setLineWidth(0.1);
       marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>doc.line(a,b,c2,d));
