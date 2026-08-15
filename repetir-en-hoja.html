@@ -490,9 +490,11 @@ function armarPieza(wmm,hmm,girar,modo,relleno,pos){
   x.fillRect(0,0,W,H);
   const sw=girar?S.src.height:S.src.width, sh=girar?S.src.width:S.src.height;
   const k=modo==='cubrir'?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
-  const dw=sw*k, dh=sh*k;
-  // Dónde apoya el arte dentro de la pieza. Solo cambia algo en el eje donde sobra o falta.
-  const ubicar=(libre)=>pos==='inicio'?0:pos==='fin'?libre:libre/2;
+  // Todo va a píxeles enteros. Si el arte cae en una coordenada con decimales, su
+  // primera fila se mezcla con el fondo y queda más clara; después el espejo la
+  // duplica y aparece como una línea en el borde.
+  const dw=Math.round(sw*k), dh=Math.round(sh*k);
+  const ubicar=(libre)=>Math.round(pos==='inicio'?0:pos==='fin'?libre:libre/2);
   const ox=ubicar(W-dw), oy=ubicar(H-dh);
   x.save();
   x.translate(ox+dw/2, oy+dh/2);
@@ -502,7 +504,7 @@ function armarPieza(wmm,hmm,girar,modo,relleno,pos){
   // "Completar espejando": el arte entra entero y lo que sobra se rellena
   // con el mismo criterio elegido para el borde de afuera.
   if(modo==='espejar'&&relleno!=='color'){
-    completar(x,c,Math.round(ox),Math.round(oy),Math.round(dw),Math.round(dh),W,H,relleno);
+    completar(x,c,ox,oy,dw,dh,W,H,relleno);
   }
   return c;
 }
