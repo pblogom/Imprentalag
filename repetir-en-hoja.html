@@ -406,6 +406,35 @@ async function abrirPdf(f){
 /* ------- recorte del borde blanco del archivo ------- */
 // Detecta márgenes casi blancos alrededor del arte. Trabaja sobre una copia
 // chica para que sea rápido en el celular, y nunca recorta más del 25% por lado.
+// La búsqueda gruesa corre sobre una copia de 700 px por velocidad, así que el borde
+// queda con un error de 2 o 3 px: sobran filas blancas que después se espejan y se ven.
+// Esto lo afina mirando fila por fila en el tamaño real, solo en una ventana chica.
+function afinarRecorte(c,r){
+  const x=c.getContext('2d'), V=248, MAR=16;
+  const filaBlanca=(px,py,w)=>{
+    if(py<0||py>=c.height||w<=0) return true;
+    const d=x.getImageData(px,py,w,1).data;
+    for(let i=0;i<d.length;i+=4) if(d[i]<V||d[i+1]<V||d[i+2]<V) return false;
+    return true;
+  };
+  const colBlanca=(px,py,h)=>{
+    if(px<0||px>=c.width||h<=0) return true;
+    const d=x.getImageData(px,py,1,h).data;
+    for(let i=0;i<d.length;i+=4) if(d[i]<V||d[i+1]<V||d[i+2]<V) return false;
+    return true;
+  };
+  let t=Math.max(0,r.y-MAR), b=Math.min(c.height-1,r.y+r.h-1+MAR);
+  const topeT=Math.min(c.height-1,r.y+MAR), topeB=Math.max(0,r.y+r.h-1-MAR);
+  while(t<topeT&&filaBlanca(r.x,t,r.w)) t++;
+  while(b>topeB&&b>t&&filaBlanca(r.x,b,r.w)) b--;
+  const alto=b-t+1;
+  let l=Math.max(0,r.x-MAR), d2=Math.min(c.width-1,r.x+r.w-1+MAR);
+  const topeL=Math.min(c.width-1,r.x+MAR), topeD=Math.max(0,r.x+r.w-1-MAR);
+  while(l<topeL&&colBlanca(l,t,alto)) l++;
+  while(d2>topeD&&d2>l&&colBlanca(d2,t,alto)) d2--;
+  if(d2<=l||b<=t) return null;
+  return {x:l,y:t,w:d2-l+1,h:b-t+1};
+}
 function detectarBlanco(c){
   const M=700, k=Math.min(1,M/Math.max(c.width,c.height));
   const w=Math.max(1,Math.round(c.width*k)), h=Math.max(1,Math.round(c.height*k));
@@ -423,8 +452,11 @@ function detectarBlanco(c){
   const tope=0.25;
   if(t0>h*tope||l0>w*tope||(h-1-b0)>h*tope||(w-1-r0)>w*tope) return null;
   if(t0===0&&l0===0&&b0===h-1&&r0===w-1) return null;
-  return {x:Math.floor(l0/k), y:Math.floor(t0/k),
-          w:Math.ceil((r0-l0+1)/k), h:Math.ceil((b0-t0+1)/k)};
+  const grueso={x:Math.floor(l0/k), y:Math.floor(t0/k),
+                w:Math.ceil((r0-l0+1)/k), h:Math.ceil((b0-t0+1)/k)};
+  const fino=afinarRecorte(c,grueso) || grueso;
+  if(fino.w>=c.width&&fino.h>=c.height) return null;
+  return fino;
 }
 function aplicarTrim(){
   if($('#trim').value==='no'){S.src=S.orig;S.trim=null;return}
