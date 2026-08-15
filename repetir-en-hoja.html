@@ -15,9 +15,9 @@
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:16px;line-height:1.45}
 .wrap{max-width:640px;margin:0 auto;padding:0 16px 70px}
-header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 16px}
+header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line);padding:6px 16px}
 .hd-inner{max-width:640px;margin:0 auto;display:flex;align-items:baseline;gap:8px}
-.hd-inner h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin:0}
+.hd-inner h1{font-size:15px;font-weight:800;letter-spacing:-.02em;margin:0}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--magenta);display:inline-block}
 .hd-inner small{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);margin-left:auto}
 .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:14px}
@@ -64,7 +64,15 @@ details[open] summary:after{content:' ▴'}
 .stage{background:#EDE7DB;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;justify-content:center;min-height:140px;position:relative;overflow:hidden}
 #prev{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 #prev:active{cursor:grabbing}
-.pv-zoom{position:absolute;right:22px;bottom:22px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.pv-bar{position:absolute;background:rgba(25,21,18,.10);border-radius:99px;z-index:3;display:none;touch-action:none}
+.pv-bar.on{display:block}
+.pv-bar .th{position:absolute;background:var(--ink-2);border-radius:99px;cursor:grab}
+.pv-bar .th:active{cursor:grabbing;background:var(--ink)}
+.pv-bar.h{left:10px;right:52px;bottom:8px;height:13px}
+.pv-bar.h .th{top:0;height:13px;min-width:34px}
+.pv-bar.v{top:10px;bottom:52px;right:8px;width:13px}
+.pv-bar.v .th{left:0;width:13px;min-height:34px}
+.pv-zoom{position:absolute;right:24px;bottom:26px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .pv-zoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:20px;font-weight:700;font-family:inherit;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(25,21,18,.15);transition:transform .1s ease-out}
 .pv-zoom button:active{transform:scale(.94)}
 .leg{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
@@ -83,7 +91,7 @@ details[open] summary:after{content:' ▴'}
 .hide{display:none}
 
 /* ---- wizard de dos columnas ---- */
-#vApp{max-width:1180px;margin:0 auto;padding:0 16px 24px}
+#vApp{max-width:1180px;margin:0 auto;padding:6px 16px 20px}
 .wz-tabs{display:flex;gap:2px;position:sticky;top:0;background:var(--paper);z-index:5;padding:10px 0 8px;margin-bottom:2px}
 .wz-tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);padding:8px 4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:color .15s ease-out,border-color .15s ease-out}
 .wz-tab b{width:18px;height:18px;border-radius:50%;background:var(--line);color:var(--ink-2);font-family:'IBM Plex Mono',monospace;font-size:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;transition:background .15s ease-out,color .15s ease-out}
@@ -110,15 +118,18 @@ details[open] summary:after{content:' ▴'}
 .preview-col{display:none}
 .pv-close{display:none;width:100%;text-align:right;background:none;border:0;padding:6px 0 10px;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer}
 
+/* pantalla completa: sirve en cualquier ancho */
+body.pv-open{overflow:hidden}
+body.pv-open .preview-col{
+  display:flex!important;flex-direction:column;position:fixed;inset:0;z-index:300;
+  background:var(--paper);padding:calc(10px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+  overflow:hidden;height:auto!important;top:0!important;
+}
+body.pv-open .preview-col .stage{flex:1;min-height:0}
+body.pv-open .pv-close{display:block!important}
+
 @media(max-width:879.98px){
   .wz-tabs{top:var(--hdh)}
-  body.pv-open{overflow:hidden}
-  body.pv-open .preview-col{
-    display:flex;flex-direction:column;position:fixed;inset:0;z-index:300;
-    background:var(--paper);padding:calc(10px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
-    overflow-y:auto;
-  }
-  body.pv-open .pv-close{display:block}
 }
 
 @media(min-width:880px){
@@ -133,7 +144,6 @@ details[open] summary:after{content:' ▴'}
     display:flex;flex-direction:column;position:sticky;top:var(--hdh);
     height:calc(100vh - var(--hdh) - 20px);overflow-y:auto;padding-right:4px;
   }
-  .pv-close{display:none!important}
 }
 </style>
 </head>
@@ -166,7 +176,10 @@ details[open] summary:after{content:' ▴'}
       <p class="card-t">Así queda la hoja</p>
       <div class="stage" id="stage">
         <canvas id="prev"></canvas>
+        <div class="pv-bar h" id="barH"><div class="th" id="thH"></div></div>
+        <div class="pv-bar v" id="barV"><div class="th" id="thV"></div></div>
         <div class="pv-zoom">
+          <button id="zFull" type="button" aria-label="Ver en grande" title="Ver en grande">⛶</button>
           <button id="zIn" type="button" aria-label="Acercar">+</button>
           <button id="zOut" type="button" aria-label="Alejar">−</button>
         </div>
@@ -325,6 +338,8 @@ function vista(v){
   $('#vCarga').classList.toggle('hide',v!=='carga');
   $('#vBusy').classList.toggle('hide',v!=='busy');
   $('#vApp').classList.toggle('hide',v!=='app');
+  // la .wrap seguía ocupando su padding aunque no tuviera nada adentro
+  $('.wrap').classList.toggle('hide', v==='app');
 }
 const num=(id,def)=>{const v=parseFloat($(id).value);return isNaN(v)||v<=0?def:v};
 
@@ -730,7 +745,68 @@ function dibujar(){
   // marcas
   x.lineWidth=1;x.strokeStyle='#191512';
   marcas(P,x0,y0,bw,bh,(a,b,c2,d)=>{const [ax,ay]=mm2c(a,b),[bx,by]=mm2c(c2,d);x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();});
+  actualizarBarras();
 }
+
+/* -------- barras de desplazamiento: aparecen solas cuando hay zoom -------- */
+// Claudia usa mouse en Windows, así que arrastrar sobre la imagen no alcanza:
+// necesita ver una barra como la de cualquier ventana.
+function ejeBarra(eje){
+  const P=S.plan, c=$('#prev');
+  const total = eje==='h'?P.hwmm:P.hhmm;
+  const visible = (eje==='h'?c._cssW:c._cssH)/S.cam.k;
+  const centro = eje==='h'?S.cam.x:S.cam.y;
+  const recorrido = Math.max(0, total-visible);
+  const pos = recorrido>0 ? Math.max(0,Math.min(1,(centro-visible/2)/recorrido)) : 0;
+  return {total, visible, recorrido, pos, frac:Math.max(0.08,Math.min(1,visible/total))};
+}
+function actualizarBarras(){
+  const P=S.plan; if(!P||P.n<1) return;
+  [['h','#barH','#thH'],['v','#barV','#thV']].forEach(([eje,bar,th])=>{
+    const b=$(bar), t=$(th), d=ejeBarra(eje);
+    const hay = d.recorrido>0.5;
+    b.classList.toggle('on', hay);
+    if(!hay) return;
+    const largo = eje==='h'?b.clientWidth:b.clientHeight;
+    const tam = Math.max(34, largo*d.frac);
+    const off = (largo-tam)*d.pos;
+    if(eje==='h'){ t.style.width=tam+'px'; t.style.left=off+'px'; }
+    else { t.style.height=tam+'px'; t.style.top=off+'px'; }
+  });
+}
+function moverBarra(eje, fraccion){
+  const P=S.plan; if(!P||P.n<1) return;
+  const d=ejeBarra(eje);
+  const v = d.visible/2 + Math.max(0,Math.min(1,fraccion))*d.recorrido;
+  if(eje==='h') S.cam.x=v; else S.cam.y=v;
+  clampCamara(); dibujar();
+}
+[['h','#barH','#thH'],['v','#barV','#thV']].forEach(([eje,bar,th])=>{
+  const b=$(bar), t=$(th);
+  let arrastrando=false, off0=0;
+  const fracDe=(cli)=>{
+    const r=b.getBoundingClientRect();
+    const largo = eje==='h'?r.width:r.height;
+    const tam = eje==='h'?t.offsetWidth:t.offsetHeight;
+    const p = (eje==='h'?cli-r.left:cli-r.top) - off0;
+    return largo-tam>0 ? p/(largo-tam) : 0;
+  };
+  t.addEventListener('pointerdown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    arrastrando=true; t.setPointerCapture(e.pointerId);
+    const r=t.getBoundingClientRect();
+    off0 = eje==='h'? e.clientX-r.left : e.clientY-r.top;
+  });
+  t.addEventListener('pointermove',e=>{ if(arrastrando) moverBarra(eje, fracDe(eje==='h'?e.clientX:e.clientY)); });
+  ['pointerup','pointercancel'].forEach(ev=>t.addEventListener(ev,()=>{arrastrando=false}));
+  b.addEventListener('pointerdown',e=>{           // clic en la barra: salta ahí
+    if(e.target===t) return;
+    const r=b.getBoundingClientRect();
+    const largo = eje==='h'?r.width:r.height;
+    const p = eje==='h'? e.clientX-r.left : e.clientY-r.top;
+    off0=0; moverBarra(eje, (p-( eje==='h'?t.offsetWidth:t.offsetHeight)/2)/Math.max(1,largo-(eje==='h'?t.offsetWidth:t.offsetHeight)));
+  });
+});
 
 // Genera las marcas de corte: arrancan a `sng` de la línea de corte y salen hacia afuera
 function marcas(P,x0,y0,bw,bh,linea){
@@ -845,7 +921,7 @@ $('#wzBack').onclick=()=>pasoIr(S.paso-1);
 $('#wzNext').onclick=()=>pasoIr(S.paso+1);
 $('#btnVerPreview').onclick=previewAbrir;
 $('#btnPvClose').onclick=previewCerrar;
-matchMedia('(min-width:880px)').addEventListener('change',e=>{ if(e.matches) document.body.classList.remove('pv-open'); });
+$('#zFull').onclick=()=>{ document.body.classList.contains('pv-open')?previewCerrar():previewAbrir(); };
 
 /* ---------------- preview: pan (1 dedo) y pinch-zoom (2 dedos) ---------------- */
 let panX0=0, panY0=0, camX0=0, camY0=0;
