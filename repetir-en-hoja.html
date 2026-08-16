@@ -216,6 +216,8 @@ body.pv-open .pv-close{display:block!important}
               <div class="x">×</div>
               <div><label class="fl">Alto (mm)</label><input type="number" id="ph" inputmode="numeric" value="150"></div>
             </div>
+            <button class="chip" id="btnProp" type="button" style="margin-top:12px;width:100%;padding:12px">Respetar la forma del archivo</button>
+            <div id="propTxt" style="font-size:13px;color:var(--ink-3);margin-top:8px">Poné una medida y la otra se acomoda sola, para que no haya que recortar ni rellenar nada.</div>
           </div>
         </div>
 
@@ -330,7 +332,7 @@ body.pv-open .pv-close{display:block!important}
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=s=>document.querySelector(s);
 const DPI=300, MARCA=3;               // largo de la marca de corte, en mm
-const S={src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null,art:null,bandas:null,pdfW:0,pdfH:0,paso:2,subpaso:'medida',punteros:new Map(),cam:{x:0,y:0,k:0,kBase:0,kMax:0}};
+const S={prop:false,src:null,orig:null,detect:undefined,trim:undefined,recortado:null,nombre:'volante',plan:null,art:null,bandas:null,pdfW:0,pdfH:0,paso:2,subpaso:'medida',punteros:new Map(),cam:{x:0,y:0,k:0,kBase:0,kMax:0}};
 
 function vista(v){
   $('#vCarga').classList.toggle('hide',v!=='carga');
@@ -687,7 +689,7 @@ function calcular(){
     if(aw>10&&ah>10) avArte.push({prioridad:7,html:`<div class="note ok"><b>Lo mejor: cortarlo a ${aw} × ${ah} mm</b>, que es lo que mide el color del archivo. Así no se pierde nada de diseño ni queda blanco. El volante sale unos milímetros más chico y no se nota.<button onclick="document.querySelector('#pw').value=${aw};document.querySelector('#ph').value=${ah};calcular()">Cortar a ${aw} × ${ah} →</button></div>`});
   }
   if(modo==='cubrir'&&(pmm.x>0.5||pmm.y>0.5))
-    avArte.push({prioridad:1,html:`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`});
+    avArte.push({prioridad:1,html:`<div class="note">Para que el arte llegue al borde se agranda un poco y <b>se pierden ${pmm.x.toFixed(1)} mm a cada costado y ${pmm.y.toFixed(1)} mm arriba y abajo</b> de diseño. Miralo con la lupa.<button onclick="document.querySelector('#btnProp').click()">Respetar la forma del archivo →</button><button onclick="document.querySelector('#ajuste').value='espejar';calcular()">Completar espejando →</button></div>`});
   // las opciones de posición se nombran según dónde sobra espacio
   const ejeV=pmm.y>=pmm.x;
   $('#lblPos').textContent = (pmm.x>0.5||pmm.y>0.5)
@@ -948,12 +950,37 @@ $('#btnPdf').onclick=()=>{
 };
 
 /* ---------------- eventos ---------------- */
+// "Respetar la forma del archivo": el volante conserva la proporción del original,
+// así no hay que recortar diseño ni rellenar nada. Al cliente no le cambia nada que
+// mida 100×141 en vez de 100×150.
+function formaArchivo(){ return S.src ? S.src.width/S.src.height : 0; }
+function ajustarPar(cual){
+  if(!S.prop||!S.src) return;
+  const f=formaArchivo(); if(!f) return;
+  if(cual==='pw'){ const a=parseFloat($('#pw').value); if(a>0) $('#ph').value=Math.round(a/f); }
+  else { const h=parseFloat($('#ph').value); if(h>0) $('#pw').value=Math.round(h*f); }
+}
+$('#btnProp').onclick=()=>{
+  S.prop=!S.prop;
+  $('#btnProp').classList.toggle('on',S.prop);
+  $('#btnProp').textContent = S.prop?'✓ Respetando la forma del archivo':'Respetar la forma del archivo';
+  $('#propTxt').textContent = S.prop
+    ? 'Listo. Cambiá el ancho o el alto y la otra medida se acomoda sola.'
+    : 'Poné una medida y la otra se acomoda sola, para que no haya que recortar ni rellenar nada.';
+  if(S.prop){ ajustarPar('pw'); document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on')); }
+  calcular();
+};
 document.querySelectorAll('#chipsPieza .chip').forEach(ch=>ch.onclick=()=>{
   document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on'));
-  ch.classList.add('on'); $('#pw').value=ch.dataset.w; $('#ph').value=ch.dataset.h; calcular();
+  ch.classList.add('on'); $('#pw').value=ch.dataset.w; $('#ph').value=ch.dataset.h;
+  if(S.prop) ajustarPar('pw');
+  calcular();
 });
 ['#pw','#ph','#hw','#hh','#mrg','#sng'].forEach(s=>$(s).oninput=()=>{
-  if(s==='#pw'||s==='#ph') document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on'));
+  if(s==='#pw'||s==='#ph'){
+    document.querySelectorAll('#chipsPieza .chip').forEach(o=>o.classList.remove('on'));
+    ajustarPar(s==='#pw'?'pw':'ph');
+  }
   calcular();
 });
 $('#hoja').onchange=e=>{$('#wrapHoja').classList.toggle('hide',e.target.value!=='libre');calcular()};
