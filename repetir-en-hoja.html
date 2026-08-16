@@ -50,6 +50,9 @@ input:focus,select:focus{outline:2px solid var(--magenta);outline-offset:-1px;bo
 .note:first-child{margin-top:0}
 .note.ok{background:var(--green-soft);border-left-color:var(--green);color:#12402D}
 .note b{font-weight:700}
+.aj{border-top:1px solid var(--line-2);padding-top:14px;margin-top:14px}
+.aj:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.ayuda{font-size:13px;color:var(--ink-3);margin:7px 0 0;line-height:1.35}
 details{border-top:1px solid var(--line-2);padding:12px 0;margin-top:4px}
 details.sub{border-top:0;margin-top:0;padding:0}
 summary{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
@@ -223,41 +226,65 @@ body.pv-open .pv-close{display:block!important}
 
         <div class="subpanel hide" data-subpaso="ajustes">
           <div class="card">
-            <label class="fl">Sangrado del borde de afuera (mm)</label>
-            <input type="number" id="sng" inputmode="numeric" value="5">
-            <label class="fl">Borde de afuera del pliego</label>
-            <select id="relleno">
-              <option value="espejo">Espejar el borde (lo normal)</option>
-              <option value="estira">Estirar el último punto</option>
-              <option value="color">Color liso</option>
-            </select>
-            <div id="wrapColor" class="hide">
-              <label class="fl">Tocá la imagen para tomar el color</label>
-              <canvas id="cuenta" style="width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
-              <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-                <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
-                <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
+
+            <div class="aj" id="ajProp">
+              <label class="fl">Cómo entra el archivo en la medida</label>
+              <select id="ajuste">
+                <option value="cubrir">Agrandarlo hasta el borde (se pierde un poco de los costados)</option>
+                <option value="espejar">Que entre entero y completar el sobrante</option>
+                <option value="entrar">Que entre entero (queda blanco alrededor)</option>
+              </select>
+              <p class="ayuda" id="ayudaAjuste"></p>
+            </div>
+
+            <div class="aj hide" id="ajPos">
+              <label class="fl" id="lblPos">Dónde apoya el arte</label>
+              <div class="chips" id="chipsPos">
+                <button class="chip on" data-p="centro">Centrado</button>
+                <button class="chip" data-p="inicio" id="posA">Pegado arriba</button>
+                <button class="chip" data-p="fin" id="posB">Pegado abajo</button>
               </div>
             </div>
-            <label class="fl">Recortarle un poco más al archivo (mm)</label>
-        <input type="number" id="trimExtra" inputmode="decimal" step="0.5" min="0" max="3" value="0">
-        <label class="fl">Borde blanco del archivo</label>
-            <select id="trim">
-              <option value="si">Sacárselo (recomendado)</option>
-              <option value="no">Dejarlo como vino</option>
-            </select>
-            <label class="fl">Si la imagen no tiene la proporción justa</label>
-            <select id="ajuste">
-              <option value="cubrir">Recortar centrado (llena la pieza)</option>
-              <option value="espejar">Entrar entera y completar espejando</option>
-              <option value="entrar">Entrar entera (deja blanco a los costados)</option>
-            </select>
-            <label class="fl" id="lblPos">Posición del arte</label>
-            <div class="chips" id="chipsPos">
-              <button class="chip on" data-p="centro">Centrado</button>
-              <button class="chip" data-p="inicio" id="posA">Pegado arriba</button>
-              <button class="chip" data-p="fin" id="posB">Pegado abajo</button>
+
+            <div class="aj" id="ajRelleno">
+              <label class="fl">Con qué se completa el borde</label>
+              <select id="relleno">
+                <option value="espejo">Repitiendo el borde en espejo</option>
+                <option value="estira">Continuando el color del borde</option>
+                <option value="color">Con un color liso</option>
+              </select>
+              <p class="ayuda">Es lo que se pone en la demasía, la parte que después corta Mingo.</p>
+              <div id="wrapColor" class="hide">
+                <label class="fl">Tocá la imagen para tomar el color</label>
+                <canvas id="cuenta" style="width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block;cursor:crosshair"></canvas>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                  <span id="sw" style="width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:#fff;flex:0 0 auto"></span>
+                  <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
+                </div>
+              </div>
             </div>
+
+            <div class="aj hide" id="ajTrim">
+              <label class="fl">El blanco que traía el archivo</label>
+              <select id="trim">
+                <option value="si">Sacárselo (lo normal)</option>
+                <option value="no">Dejarlo como vino</option>
+              </select>
+              <label class="fl">Sacarle un poco más (mm)</label>
+              <input type="number" id="trimExtra" inputmode="decimal" step="0.5" min="0" max="3" value="0">
+              <p class="ayuda">Solo si al mirar de cerca todavía se ve una línea clara en el borde.</p>
+            </div>
+
+            <details id="ajAvanzado">
+              <summary>Medidas de la máquina</summary>
+              <label class="fl">Demasía para cortar (mm)</label>
+              <input type="number" id="sng" inputmode="numeric" value="5">
+              <p class="ayuda">Cuánto se imprime de más para afuera de la línea de corte.</p>
+            </details>
+
+            <button class="btn btn-s" id="btnReset" type="button" style="margin-top:16px">Volver a como estaba</button>
+          </div>
+        </div>
           </div>
         </div>
       </div>
@@ -291,14 +318,15 @@ body.pv-open .pv-close{display:block!important}
 
         <div class="card">
           <details class="sub">
-            <summary>Margen, orientación y detalle técnico</summary>
-            <label class="fl">Margen de la hoja (mm)</label>
+            <summary>Medidas de la máquina</summary>
+            <label class="fl">Lo que no imprime la máquina (mm)</label>
             <input type="number" id="mrg" inputmode="numeric" value="4">
-            <label class="fl">Orientación</label>
+            <p class="ayuda">El borde de la hoja que no agarra la impresora. Cuanto más chico, más volantes entran.</p>
+            <label class="fl">Cómo acomodar el volante en la hoja</label>
             <select id="rot">
-              <option value="auto">La que entre más copias</option>
-              <option value="no">Dejar como está</option>
-              <option value="si">Girada 90°</option>
+              <option value="auto">Como entren más</option>
+              <option value="no">Derecho</option>
+              <option value="si">Acostado</option>
             </select>
             <div id="datos" style="margin-top:14px"></div>
           </details>
@@ -722,6 +750,7 @@ function calcular(){
     const bpx=mm2px(sng); S.bandas={};
     ['arriba','abajo','izq','der','ai','ad','bi','bd'].forEach(l=>S.bandas[l]=banda(S.art,l,bpx,relleno));
   }
+  mostrarAjustes(pmm,relleno,modo);
   pintarAvisos('#avisosArte', avArte);
   pintarAvisos('#avisosHoja', avHoja);
   fitCamara();
@@ -949,6 +978,20 @@ $('#btnPdf').onclick=()=>{
   },60);
 };
 
+// Solo se muestra el ajuste que este archivo necesita. Si no sobra espacio, no hay
+// nada que decidir sobre posición ni sobre el relleno interno, así que no aparecen.
+function mostrarAjustes(pmm,relleno,modo){
+  const sobra = pmm.x>0.5||pmm.y>0.5;
+  $('#ajProp').classList.toggle('hide', !sobra);
+  $('#ajPos').classList.toggle('hide', !(sobra&&modo!=='cubrir'));
+  $('#ajTrim').classList.toggle('hide', !S.trim);
+  $('#ayudaAjuste').textContent={
+    cubrir:'El arte se agranda hasta tapar toda la pieza. Lo que sobra por los costados se pierde.',
+    espejar:'El arte entra completo y lo que falta para llegar al borde se completa solo.',
+    entrar:'El arte entra completo, pero queda una franja blanca adentro del volante.'
+  }[modo]||'';
+}
+
 /* ---------------- eventos ---------------- */
 // "Respetar la forma del archivo": el volante conserva la proporción del original,
 // así no hay que recortar diseño ni rellenar nada. Al cliente no le cambia nada que
@@ -987,6 +1030,16 @@ $('#hoja').onchange=e=>{$('#wrapHoja').classList.toggle('hide',e.target.value!==
 $('#ajuste').onchange=calcular; $('#rot').onchange=calcular;
 $('#trim').onchange=()=>{S.detect=undefined;calcular()};
 $('#trimExtra').oninput=()=>{S.detect=undefined;calcular()};
+// Volver a como estaba: saca el miedo a tocar, que es lo que más frena a Claudia.
+$('#btnReset').onclick=()=>{
+  $('#ajuste').value='cubrir'; $('#relleno').value='espejo'; $('#trim').value='si';
+  $('#trimExtra').value=0; $('#sng').value=5; $('#mrg').value=4; $('#rot').value='auto';
+  $('#colorIn').value='#ffffff'; $('#sw').style.background='#ffffff';
+  $('#wrapColor').classList.add('hide');
+  document.querySelectorAll('#chipsPos .chip').forEach((o,i)=>o.classList.toggle('on',i===0));
+  S.detect=undefined;
+  if(S.prop) $('#btnProp').click(); else calcular();
+};
 $('#colorIn').oninput=e=>{$('#sw').style.background=e.target.value;calcular()};
 $('#relleno').onchange=e=>{
   const esColor=e.target.value==='color';
