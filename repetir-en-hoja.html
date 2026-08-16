@@ -237,7 +237,9 @@ body.pv-open .pv-close{display:block!important}
                 <input type="color" id="colorIn" value="#ffffff" style="flex:1;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff">
               </div>
             </div>
-            <label class="fl">Borde blanco del archivo</label>
+            <label class="fl">Recortarle un poco más al archivo (mm)</label>
+        <input type="number" id="trimExtra" inputmode="decimal" step="0.5" min="0" max="3" value="0">
+        <label class="fl">Borde blanco del archivo</label>
             <select id="trim">
               <option value="si">Sacárselo (recomendado)</option>
               <option value="no">Dejarlo como vino</option>
@@ -412,6 +414,36 @@ async function abrirPdf(f){
 // La búsqueda gruesa corre sobre una copia de 700 px por velocidad, así que el borde
 // queda con un error de 2 o 3 px: sobran filas blancas que después se espejan y se ven.
 // Esto lo afina mirando fila por fila en el tamaño real, solo en una ventana chica.
+// Al recortar el blanco queda una fila de transición: la del borde del original, que
+// es mitad blanco mitad arte porque está suavizada. No es blanca (da 230, no 255), así
+// que el recorte la conserva, y después el espejo la duplica y se ve como una raya.
+// Esto la descarta comparando brillo con las filas de más adentro, no con el blanco.
+function despuntar(c,r){
+  const x=c.getContext('2d'), MAXQ=6, SALTO=5;
+  const brilloFila=(px,py,w)=>{
+    const d=x.getImageData(px,py,w,1).data; let s=0;
+    for(let i=0;i<d.length;i+=4) s+=(d[i]+d[i+1]+d[i+2])/3;
+    return s/(d.length/4);
+  };
+  const brilloCol=(px,py,h)=>{
+    const d=x.getImageData(px,py,1,h).data; let s=0;
+    for(let i=0;i<d.length;i+=4) s+=(d[i]+d[i+1]+d[i+2])/3;
+    return s/(d.length/4);
+  };
+  let {x:rx,y:ry,w:rw,h:rh}=r;
+  const ref=(f,a,b)=>{let s=0,n=0;for(let i=a;i<=b;i++){s+=f(i);n++}return s/n};
+  // arriba y abajo
+  let q=0;
+  while(q<MAXQ&&rh>20&&brilloFila(rx,ry,rw) > ref(i=>brilloFila(rx,ry+i,rw),3,9)+SALTO){ ry++; rh--; q++; }
+  q=0;
+  while(q<MAXQ&&rh>20&&brilloFila(rx,ry+rh-1,rw) > ref(i=>brilloFila(rx,ry+rh-1-i,rw),3,9)+SALTO){ rh--; q++; }
+  // costados
+  q=0;
+  while(q<MAXQ&&rw>20&&brilloCol(rx,ry,rh) > ref(i=>brilloCol(rx+i,ry,rh),3,9)+SALTO){ rx++; rw--; q++; }
+  q=0;
+  while(q<MAXQ&&rw>20&&brilloCol(rx+rw-1,ry,rh) > ref(i=>brilloCol(rx+rw-1-i,ry,rh),3,9)+SALTO){ rw--; q++; }
+  return {x:rx,y:ry,w:rw,h:rh};
+}
 function afinarRecorte(c,r){
   const x=c.getContext('2d'), V=248, MAR=16;
   const filaBlanca=(px,py,w)=>{
@@ -457,7 +489,11 @@ function detectarBlanco(c){
   if(t0===0&&l0===0&&b0===h-1&&r0===w-1) return null;
   const grueso={x:Math.floor(l0/k), y:Math.floor(t0/k),
                 w:Math.ceil((r0-l0+1)/k), h:Math.ceil((b0-t0+1)/k)};
-  const fino=afinarRecorte(c,grueso) || grueso;
+  let fino=afinarRecorte(c,grueso) || grueso;
+  fino=despuntar(c,fino);
+  const extra=Math.max(0,Math.min(3,parseFloat($('#trimExtra')?$('#trimExtra').value:0)||0));
+  if(extra>0){ const e=mm2px(extra);
+    fino={x:fino.x+e,y:fino.y+e,w:Math.max(20,fino.w-2*e),h:Math.max(20,fino.h-2*e)}; }
   if(fino.w>=c.width&&fino.h>=c.height) return null;
   return fino;
 }
@@ -922,7 +958,8 @@ document.querySelectorAll('#chipsPieza .chip').forEach(ch=>ch.onclick=()=>{
 });
 $('#hoja').onchange=e=>{$('#wrapHoja').classList.toggle('hide',e.target.value!=='libre');calcular()};
 $('#ajuste').onchange=calcular; $('#rot').onchange=calcular;
-$('#trim').onchange=calcular;
+$('#trim').onchange=()=>{S.detect=undefined;calcular()};
+$('#trimExtra').oninput=()=>{S.detect=undefined;calcular()};
 $('#colorIn').oninput=e=>{$('#sw').style.background=e.target.value;calcular()};
 $('#relleno').onchange=e=>{
   const esColor=e.target.value==='color';
