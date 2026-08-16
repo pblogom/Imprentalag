@@ -49,9 +49,11 @@ input:focus,select:focus{outline:2px solid var(--magenta);outline-offset:-1px;bo
 .note{background:var(--amber-soft);border-left:4px solid var(--amber);border-radius:0 10px 10px 0;padding:13px 14px;font-size:15px;line-height:1.4;color:#4A3200;margin-top:12px}
 .note::before{content:'OJO';display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--amber);margin-bottom:5px}
 .note.ok::before{content:'RECOMENDADO';color:var(--green)}
-.note button{display:block;width:100%;margin-top:11px;padding:13px 14px;border:0;border-radius:10px;
-  background:var(--magenta);color:#fff;font-family:inherit;font-size:15px;font-weight:700;text-align:center;cursor:pointer}
-.note button+button{margin-top:7px;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.note button{display:block;width:100%;margin-top:11px;padding:13px 14px;border-radius:10px;
+  background:rgba(25,21,18,.07);color:var(--ink);border:1px solid rgba(25,21,18,.14);
+  font-family:inherit;font-size:15px;font-weight:600;text-align:center;cursor:pointer}
+.note button:hover{background:rgba(25,21,18,.12)}
+.note button+button{margin-top:7px}
 .note-extra{font-size:13.5px;color:var(--ink-2);margin-top:10px;padding-left:2px}
 .note-extra li{margin-top:5px}
 .note:first-child{margin-top:0}
